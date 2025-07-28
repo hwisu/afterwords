@@ -37,8 +37,6 @@ export async function renderProfilePage(user, reviews, groups) {
   `;
   
   const content = `
-    <a href="/" class="back-btn">← 홈으로</a>
-    
     <h1>내 정보</h1>
     
     <div class="profile-section">

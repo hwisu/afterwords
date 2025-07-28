@@ -1,4 +1,8 @@
 name = "afterwords"
+
+routes = [
+  { pattern = "do.h4o.kim", custom_domain = true }
+]
 main = "index.js"
 compatibility_date = "2024-01-01"
 

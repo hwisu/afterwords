@@ -12,6 +12,8 @@ export async function renderGroupsPage(groups, userGroups, userId) {
     body {
         max-width: 800px;
         font-weight: 300;
+        margin: 0 auto;
+        padding: 20px;
     }
     
     .section {
@@ -100,8 +102,6 @@ export async function renderGroupsPage(groups, userGroups, userId) {
   `;
   
   const content = `
-    <a href="/" class="back-btn">← 홈으로</a>
-    
     <h1>그룹 관리</h1>
     
     <div class="section">

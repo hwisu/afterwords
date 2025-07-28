@@ -29,6 +29,7 @@ export async function renderHomePage(reviews) {
         text-decoration: underline;
         color: #333;
         transition: opacity 0.3s ease;
+        min-width: 80px;
     }
     
     .nav-item:hover {

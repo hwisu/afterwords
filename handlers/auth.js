@@ -1,9 +1,3 @@
-// Simple authentication configuration
-const AUTH_CONFIG = {
-  username: 'admin',
-  password: 'password'
-};
-
 // Get user by username
 async function getUserByUsername(env, username) {
   const result = await env.DB.prepare('SELECT id, username FROM users WHERE username = ?').bind(username).first();
@@ -45,7 +39,6 @@ async function getUserFromToken(token, env) {
 
 import { renderLoginPage, renderSignupPage } from '../views/auth.js';
 
-// Simple password hashing (in production, use bcrypt or similar)
 async function hashPassword(password) {
   const encoder = new TextEncoder();
   const data = encoder.encode(password);

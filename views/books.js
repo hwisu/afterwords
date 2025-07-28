@@ -7,7 +7,9 @@ import { renderPageLayout, escapeHtml } from './common.js';
 export async function renderBookRegistrationPage() {
   const styles = `
     body {
-        max-width: 600px;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
     }
     
     .notice {
@@ -169,8 +171,6 @@ export async function renderBooksListPage(books) {
   `;
   
   const content = `
-    <a href="/" class="back-btn">← 홈으로</a>
-    
     <h1>책 목록</h1>
     
     <div class="stats">

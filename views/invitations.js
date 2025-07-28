@@ -34,7 +34,6 @@ export async function renderInvitationPage(inviteCode, invitation) {
     const content = `
       <h1>유효하지 않은 초대 코드입니다</h1>
       <p>초대 코드를 다시 확인해주세요.</p>
-      <a href="/">홈으로 돌아가기</a>
     `;
     
     return renderPageLayout('초대 코드 오류', content, styles);
@@ -147,9 +146,6 @@ export async function renderInvitationPage(inviteCode, invitation) {
           </form>`
         }
         
-        <p style="margin-top: 30px;">
-            <a href="/" style="color: #666; text-decoration: underline;">홈으로 돌아가기</a>
-        </p>
     </div>
   `;
   

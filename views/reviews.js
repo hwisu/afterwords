@@ -197,7 +197,9 @@ export async function renderReviewEditPage(review) {
 export async function renderReviewWritingPage(books, userGroups) {
   const styles = `
     body {
-        max-width: 600px;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
     }
     
     .info-box {
