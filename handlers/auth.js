@@ -4,6 +4,12 @@ const AUTH_CONFIG = {
   password: 'password'
 };
 
+// Get user by username
+async function getUserByUsername(env, username) {
+  const result = await env.DB.prepare('SELECT id, username FROM users WHERE username = ?').bind(username).first();
+  return result;
+}
+
 // Check if user is authenticated
 async function checkAuth(request, env) {
   const cookieHeader = request.headers.get('Cookie');
@@ -73,4 +79,4 @@ async function handleLogout() {
   });
 }
 
-export { checkAuth, handleLogin, handleLoginPost, handleLogout };
+export { checkAuth, handleLogin, handleLoginPost, handleLogout, getUserByUsername };

@@ -1,5 +1,5 @@
 import { handleLogin, handleLoginPost, handleLogout, checkAuth } from './handlers/auth.js';
-import { handleHomePage, handleAddReview, handleGetReview, handleDeleteReview } from './handlers/reviews.js';
+import { handleHomePage, handleAddReview, handleGetReview, handleDeleteReview, getReviewsByGroup, getAllReviews } from './handlers/reviews.js';
 import { getAllBooks, getReviewsByBook } from './handlers/books.js';
 import { getAllGroups, getGroup, createGroup, addMemberToGroup, addBookToGroup } from './handlers/groups.js';
 
@@ -56,10 +56,16 @@ export default {
       });
     }
     if (request.method === 'GET' && pathname.startsWith('/books/')) {
-      const pathParts = pathname.split('/');
-      const title = decodeURIComponent(pathParts[2]);
-      const author = decodeURIComponent(pathParts[3]);
-      const reviews = await getReviewsByBook(title, author, env);
+      const bookId = pathname.split('/')[2];
+      const reviews = await getReviewsByBook(bookId, env);
+      return new Response(JSON.stringify(reviews), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // Get all reviews (for the frontend to use when no group is selected)
+    if (request.method === 'GET' && pathname === '/reviews') {
+      const reviews = await getAllReviews(env);
       return new Response(JSON.stringify(reviews), {
         headers: { 'Content-Type': 'application/json' },
       });
@@ -79,6 +85,15 @@ export default {
         return new Response('Group not found', { status: 404 });
       }
       return new Response(JSON.stringify(group), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    
+    // Reviews by group route
+    if (request.method === 'GET' && pathname.startsWith('/reviews/group/')) {
+      const groupId = pathname.split('/')[3];
+      const reviews = await getReviewsByGroup(env, groupId);
+      return new Response(JSON.stringify(reviews), {
         headers: { 'Content-Type': 'application/json' },
       });
     }

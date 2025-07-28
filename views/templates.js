@@ -326,6 +326,16 @@ async function renderHomePage(reviews) {
         <button type="submit" class="register-btn">등록</button>
     </form>
     
+    <div class="filters">
+        <label for="group-filter">그룹 필터:</label>
+        <select id="group-filter" name="group-filter">
+            <option value="">모든 그룹</option>
+            <!-- 그룹 옵션은 자바스크립트로 동적으로 추가될 것입니다 -->
+        </select>
+    </div>
+    <div class="book-registration-notice">
+        <p><strong>공지:</strong> 등록된 책은 모든 사용자가 볼 수 있습니다.</p>
+    </div>
     <ul class="review-list">
         ${reviews.map(review => `
             <li class="review-item">
@@ -335,12 +345,88 @@ async function renderHomePage(reviews) {
                 <div class="review-meta">
                     ${escapeHtml(review.author)} | 
                     <span class="rating">${'★'.repeat(review.rating)}${'☆'.repeat(5-review.rating)}</span> | 
-                    ${new Date(review.createdAt).toLocaleDateString('ko-KR')}
+                    ${new Date(review.createdAt).toLocaleDateString('ko-KR')} |
+                    ${escapeHtml(review.username)}
                 </div>
                 <div class="review-text">${escapeHtml(review.review).substring(0, 200)}${review.review.length > 200 ? '...' : ''}</div>
             </li>
         `).join('')}
     </ul>
+    <script>
+        // 그룹 목록을 가져와서 필터 드롭다운에 추가
+        async function loadGroups() {
+            try {
+                const response = await fetch('/groups');
+                const groups = await response.json();
+                const groupFilter = document.getElementById('group-filter');
+                
+                groups.forEach(group => {
+                    const option = document.createElement('option');
+                    option.value = group.id;
+                    option.textContent = group.name;
+                    groupFilter.appendChild(option);
+                });
+            } catch (error) {
+                console.error('그룹을 불러오는 데 실패했습니다:', error);
+            }
+        }
+        
+        // 필터가 변경되었을 때 독후감 목록을 업데이트
+        async function updateReviews() {
+            const groupId = document.getElementById('group-filter').value;
+            let reviews = [];
+            
+            if (groupId) {
+                // 특정 그룹의 독후감만 가져오기
+                const response = await fetch('/reviews/group/' + groupId);
+                reviews = await response.json();
+            } else {
+                // 모든 독후감 가져오기
+                const response = await fetch('/reviews');
+                reviews = await response.json();
+            }
+            
+            // 독후감 목록 업데이트
+            const reviewList = document.querySelector('.review-list');
+            let reviewHtml = '';
+            reviews.forEach(function(review) {
+                reviewHtml += '<li class="review-item">';
+                reviewHtml += '<h2 class="review-title">';
+                reviewHtml += '<a href="/review/' + review.id + '">' + escapeHtml(review.title) + '</a>';
+                reviewHtml += '</h2>';
+                reviewHtml += '<div class="review-meta">';
+                reviewHtml += escapeHtml(review.author) + ' | ';
+                reviewHtml += '<span class="rating">';
+                for (let i = 0; i < review.rating; i++) {
+                    reviewHtml += '★';
+                }
+                for (let i = review.rating; i < 5; i++) {
+                    reviewHtml += '☆';
+                }
+                reviewHtml += '</span> | ';
+                reviewHtml += new Date(review.createdAt).toLocaleDateString('ko-KR') + ' | ';
+                reviewHtml += escapeHtml(review.username);
+                reviewHtml += '</div>';
+                reviewHtml += '<div class="review-text">' + escapeHtml(review.review).substring(0, 200);
+                if (review.review.length > 200) {
+                    reviewHtml += '...';
+                }
+                reviewHtml += '</div>';
+                reviewHtml += '</li>';
+            });
+            reviewList.innerHTML = reviewHtml;
+        }
+        
+        // 페이지 로드 시 그룹 목록 로드
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadGroups();
+            // 초기 독후감 목록 로드
+            updateReviews();
+            
+            // 필터 변경 이벤트 리스너 추가
+            document.getElementById('group-filter').addEventListener('change', updateReviews);
+        });
+    </script>
 </body>
 </html>`;
 }

@@ -1,26 +1,21 @@
 // Handle getting all books
 async function getAllBooks(env) {
-  const reviews = await getAllReviews(env);
-  // Extract unique books from reviews
-  const booksMap = new Map();
-  reviews.forEach(review => {
-    const key = `${review.title}-${review.author}`;
-    if (!booksMap.has(key)) {
-      booksMap.set(key, {
-        title: review.title,
-        author: review.author
-      });
-    }
-  });
-  return Array.from(booksMap.values());
+  const stmt = env.DB.prepare('SELECT id, title, author FROM books ORDER BY title, author');
+  const result = await stmt.all();
+  return result.results;
 }
 
 // Handle getting reviews for a specific book
-async function getReviewsByBook(title, author, env) {
-  const reviews = await getAllReviews(env);
-  return reviews.filter(review => 
-    review.title === title && review.author === author
-  );
+async function getReviewsByBook(bookId, env) {
+  const stmt = env.DB.prepare(`
+    SELECT r.*, u.username 
+    FROM reviews r 
+    JOIN users u ON r.user_id = u.id 
+    WHERE r.book_id = ? 
+    ORDER BY r.created_at DESC
+  `);
+  const result = await stmt.bind(bookId).all();
+  return result.results;
 }
 
 // Make getAllReviews available to books handler
