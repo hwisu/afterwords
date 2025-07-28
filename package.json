@@ -12,5 +12,8 @@
   },
   "devDependencies": {
     "wrangler": "^3.0.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2"
   }
 }

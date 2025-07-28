@@ -38,12 +38,11 @@ async function getUserFromToken(token, env) {
 }
 
 import { renderLoginPage, renderSignupPage } from '../views/auth.js';
+import bcrypt from 'bcryptjs';
 
 async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hash = await crypto.subtle.digest('SHA-256', data);
-  return btoa(String.fromCharCode(...new Uint8Array(hash)));
+  const saltRounds = 12;
+  return await bcrypt.hash(password, saltRounds);
 }
 
 // Generate auth token
@@ -68,11 +67,9 @@ async function handleLoginPost(request, env) {
   const user = await env.DB.prepare('SELECT * FROM users WHERE username = ?').bind(username).first();
   
   if (user) {
-    // Hash the provided password
-    const hashedPassword = await hashPassword(password);
-    
-    // Check if password matches
-    if (hashedPassword === user.password_hash) {
+    // Check if password matches using bcrypt
+    const passwordMatch = await bcrypt.compare(password, user.password_hash);
+    if (passwordMatch) {
       // Create auth token
       const token = crypto.randomUUID();
       const now = new Date().toISOString();
@@ -83,7 +80,7 @@ async function handleLoginPost(request, env) {
         .bind(token, user.id, now, expires).run();
       
       // Create response with redirect and set cookie header
-      return new Response(null, {
+      return new Response('', {
         status: 302,
         headers: {
           'Location': '/',
@@ -101,7 +98,7 @@ async function handleLoginPost(request, env) {
 
 // Handle logout
 async function handleLogout() {
-  return new Response(null, {
+  return new Response('', {
     status: 302,
     headers: {
       'Location': '/login',
