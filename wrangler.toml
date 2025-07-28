@@ -1,0 +1,10 @@
+name = "afterread"
+main = "index.js"
+compatibility_date = "2024-01-01"
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_id = "15f10e00-3a8f-4fdd-a474-3f3a2e56d8ef"
+database_name = "book-reviews-db"
+migrations_dir = "./migrations"

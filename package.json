@@ -1,0 +1,16 @@
+{
+  "name": "book-reviews-worker",
+  "version": "1.0.0",
+  "description": "독후감 페이지 - 클라우드플레어 워커",
+  "main": "index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "setup-db": "wrangler d1 create book-reviews-db",
+    "migrate": "wrangler d1 migrations apply book-reviews-db",
+    "reset-db": "wrangler d1 delete book-reviews-db --force && npm run setup-db"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}
