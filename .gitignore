@@ -38,3 +38,6 @@ coverage/
 
 # Wrangler
 .wrangler/
+
+database.db
+.claude

@@ -1,5 +1,6 @@
-import { renderHomePage, renderReviewPage } from '../views/templates.js';
-import { getUserByUsername } from './auth.js';
+import { renderHomePage } from '../views/home.js';
+import { renderReviewPage, renderReviewEditPage } from '../views/reviews.js';
+import { getUserByUsername, getUserFromToken } from './auth.js';
 
 // Handle home page
 async function handleHomePage(env) {
@@ -13,8 +14,7 @@ async function handleHomePage(env) {
 // Handle adding a new review
 async function handleAddReview(request, env) {
   const formData = await request.formData();
-  const title = formData.get('title');
-  const author = formData.get('author');
+  const book_id = formData.get('book_id');
   const review = formData.get('review');
   const rating = formData.get('rating');
   
@@ -27,40 +27,50 @@ async function handleAddReview(request, env) {
     })
   );
   const token = cookies.auth_token;
-  const tokenResult = await env.DB.prepare('SELECT token FROM auth_tokens WHERE token = ?').bind(token).first();
-  if (!tokenResult) {
+  
+  // Get user from token
+  const user = await getUserFromToken(token, env);
+  if (!user) {
     return new Response('Unauthorized', { status: 401 });
   }
   
-  // Get user from token
-  const username = 'admin'; // This should be derived from the auth token in a real implementation
-  const user = await getUserByUsername(env, username);
-  if (!user) {
-    return new Response('User not found', { status: 404 });
-  }
+  const group_id = formData.get('group_id') || null;
   
-  // Check if the book already exists
-  let bookResult = await env.DB.prepare('SELECT id FROM books WHERE title = ? AND author = ?')
-    .bind(title, author)
-    .first();
-  
-  let bookId;
-  if (bookResult) {
-    bookId = bookResult.id;
+  // Check if user already reviewed this book in this group
+  if (group_id) {
+    const existing = await env.DB.prepare(
+      'SELECT id FROM reviews WHERE user_id = ? AND book_id = ? AND group_id = ?'
+    ).bind(user.id, book_id, group_id).first();
+    
+    if (existing) {
+      return new Response(JSON.stringify({ 
+        error: '이미 이 그룹에서 해당 책에 대한 독후감을 작성하셨습니다.' 
+      }), { 
+        status: 409,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
   } else {
-    // Create a new book
-    bookId = crypto.randomUUID();
-    const now = new Date().toISOString();
-    await env.DB.prepare('INSERT INTO books (id, title, author, created_at) VALUES (?, ?, ?, ?)')
-      .bind(bookId, title, author, now)
-      .run();
+    // Check for personal review
+    const existing = await env.DB.prepare(
+      'SELECT id FROM reviews WHERE user_id = ? AND book_id = ? AND group_id IS NULL'
+    ).bind(user.id, book_id).first();
+    
+    if (existing) {
+      return new Response(JSON.stringify({ 
+        error: '이미 해당 책에 대한 개인 독후감을 작성하셨습니다.' 
+      }), { 
+        status: 409,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
   }
   
   const id = crypto.randomUUID();
   const createdAt = new Date().toISOString();
   
-  await env.DB.prepare('INSERT INTO reviews (id, book_id, review, rating, created_at, user_id) VALUES (?, ?, ?, ?, ?, ?)')
-    .bind(id, bookId, review, parseInt(rating), createdAt, user.id)
+  await env.DB.prepare('INSERT INTO reviews (id, book_id, review, rating, created_at, user_id, group_id) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .bind(id, book_id, review, parseInt(rating), createdAt, user.id, group_id)
     .run();
   
   return Response.redirect(new URL('/', request.url), 303);
@@ -68,7 +78,13 @@ async function handleAddReview(request, env) {
 
 // Handle getting a specific review
 async function handleGetReview(id, env) {
-  const result = await env.DB.prepare('SELECT * FROM reviews WHERE id = ?').bind(id).first();
+  const result = await env.DB.prepare(`
+    SELECT r.*, b.title, b.author, u.username
+    FROM reviews r
+    JOIN books b ON r.book_id = b.id
+    JOIN users u ON r.user_id = u.id
+    WHERE r.id = ?
+  `).bind(id).first();
   if (!result) {
     return new Response('Review not found', { status: 404 });
   }
@@ -127,4 +143,72 @@ async function getReviewsByUser(env, userId) {
   return result.results;
 }
 
-export { handleHomePage, handleAddReview, handleGetReview, handleDeleteReview, getReviewsByGroup, getAllReviews };
+// Handle showing review edit page
+async function handleReviewEditPage(reviewId, request, env) {
+  // Get the review with book and group info
+  const review = await env.DB.prepare(`
+    SELECT r.*, b.title, b.author, g.name as group_name
+    FROM reviews r
+    JOIN books b ON r.book_id = b.id
+    LEFT JOIN groups g ON r.group_id = g.id
+    WHERE r.id = ?
+  `).bind(reviewId).first();
+  
+  if (!review) {
+    return new Response('Review not found', { status: 404 });
+  }
+  
+  // Check if user owns this review
+  const cookieHeader = request.headers.get('Cookie');
+  const cookies = Object.fromEntries(
+    cookieHeader ? cookieHeader.split('; ').map(c => c.split('=')) : []
+  );
+  const token = cookies.auth_token;
+  
+  const user = await getUserFromToken(token, env);
+  if (!user) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+  if (!user || user.id !== review.user_id) {
+    return new Response('권한이 없습니다.', { status: 403 });
+  }
+  
+  const html = await renderReviewEditPage(review);
+  return new Response(html, {
+    headers: { 'Content-Type': 'text/html;charset=UTF-8' },
+  });
+}
+
+// Handle updating review
+async function handleUpdateReview(reviewId, request, env) {
+  const formData = await request.formData();
+  const reviewText = formData.get('review');
+  const rating = formData.get('rating');
+  
+  // Check if user owns this review
+  const cookieHeader = request.headers.get('Cookie');
+  const cookies = Object.fromEntries(
+    cookieHeader ? cookieHeader.split('; ').map(c => c.split('=')) : []
+  );
+  const token = cookies.auth_token;
+  
+  const user = await getUserFromToken(token, env);
+  if (!user) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+  
+  // Verify ownership
+  const review = await env.DB.prepare('SELECT user_id FROM reviews WHERE id = ?').bind(reviewId).first();
+  if (!review || user.id !== review.user_id) {
+    return new Response('권한이 없습니다.', { status: 403 });
+  }
+  
+  // Update review
+  await env.DB.prepare(
+    'UPDATE reviews SET review = ?, rating = ? WHERE id = ?'
+  ).bind(reviewText, parseInt(rating), reviewId).run();
+  
+  return Response.redirect(new URL(`/review/${reviewId}`, request.url), 303);
+}
+
+export { handleHomePage, handleAddReview, handleGetReview, handleDeleteReview, getReviewsByGroup, getAllReviews, handleReviewEditPage, handleUpdateReview };
