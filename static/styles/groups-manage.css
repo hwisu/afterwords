@@ -5,6 +5,7 @@
     padding: 25px;
     margin-bottom: 40px;
     border: 1px solid rgba(0,0,0,0.05);
+    border-radius: 8px;
 }
 
 .group-info h2 {
@@ -36,6 +37,7 @@
     font-size: 14px;
     background: rgba(0,0,0,0.02);
     border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 4px;
 }
 
 .members-list {

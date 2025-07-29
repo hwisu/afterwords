@@ -14,24 +14,15 @@ async function handleHomePage(request, env) {
 }
 
 // Handle adding a new review
-async function handleAddReview(request, env) {
-  const formData = await request.formData();
+async function handleAddReview(c) {
+  const formData = await c.req.formData();
   const book_id = formData.get('book_id');
   const review = formData.get('review');
   const rating = formData.get('rating');
+  const env = c.env;
   
   // Get the authenticated user
-  const cookieHeader = request.headers.get('Cookie');
-  const cookies = Object.fromEntries(
-    cookieHeader.split(';').map(cookie => {
-      const [key, value] = cookie.trim().split('=');
-      return [key, value];
-    })
-  );
-  const token = cookies.auth_token;
-  
-  // Get user from token
-  const user = await getUserFromToken(token, env);
+  const user = c.get('user');
   if (!user) {
     return new Response('Unauthorized', { status: 401 });
   }
@@ -91,15 +82,10 @@ async function handleAddReview(request, env) {
 
 
 // Handle deleting a review
-async function handleDeleteReview(id, request, env) {
-  // Check if user owns this review
-  const cookieHeader = request.headers.get('Cookie');
-  const cookies = Object.fromEntries(
-    cookieHeader ? cookieHeader.split('; ').map(c => c.split('=')) : []
-  );
-  const token = cookies.auth_token;
-  
-  const user = await getUserFromToken(token, env);
+async function handleDeleteReview(id, c) {
+  const env = c.env;
+  // Get the authenticated user
+  const user = c.get('user');
   if (!user) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
       status: 401,
@@ -212,19 +198,14 @@ async function handleReviewEditPage(reviewId, request, env) {
 }
 
 // Handle updating review
-async function handleUpdateReview(reviewId, request, env) {
-  const formData = await request.formData();
+async function handleUpdateReview(reviewId, c) {
+  const formData = await c.req.formData();
   const reviewText = formData.get('review');
   const rating = formData.get('rating');
+  const env = c.env;
   
-  // Check if user owns this review
-  const cookieHeader = request.headers.get('Cookie');
-  const cookies = Object.fromEntries(
-    cookieHeader ? cookieHeader.split('; ').map(c => c.split('=')) : []
-  );
-  const token = cookies.auth_token;
-  
-  const user = await getUserFromToken(token, env);
+  // Get the authenticated user
+  const user = c.get('user');
   if (!user) {
     return new Response("Unauthorized", { status: 401 });
   }

@@ -6,7 +6,7 @@ import { getAllBooks, getReviewsByBook, handleAddBook, handleUpdateBook, handleD
 import { getAllGroups, getGroup, handleCreateGroup, handleJoinGroup, handleLeaveGroup, handleRemoveMember, handleMakeAdmin, handleDeleteGroup } from './handlers/groups.js';
 import { createGroupInvitation, acceptGroupInvitation, handleInvitationPage, createGeneralInvitation } from './handlers/invitations.js';
 import { handlePasswordResetRequest, handlePasswordResetRequestPost, handlePasswordResetPage, handlePasswordResetPost } from './handlers/password-reset.js';
-import { handleCreateMeeting, handleMeetingRegistration } from './handlers/meetings.js';
+import { handleMeetingCreationPage, handleCreateMeeting, handleMeetingDetailPage, handleMeetingRegistration } from './handlers/meetings.js';
 
 const app = new Hono();
 
@@ -27,12 +27,22 @@ const authMiddleware = async (c, next) => {
   const token = cookies.auth_token;
   
   if (!token) {
-    return c.json({ error: 'Unauthorized' }, 401);
+    // If it's an API request, return JSON error
+    if (c.req.path.startsWith('/api/')) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    // For page requests, redirect to login
+    return c.redirect('/login', 302);
   }
   
   const user = await getUserFromToken(token, c.env);
   if (!user) {
-    return c.json({ error: 'Unauthorized' }, 401);
+    // If it's an API request, return JSON error
+    if (c.req.path.startsWith('/api/')) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+    // For page requests, redirect to login
+    return c.redirect('/login', 302);
   }
   
   c.set('user', user);
@@ -82,6 +92,7 @@ app.get('/profile', authMiddleware, async (c) => serveStatic(c, '/profile.html')
 app.get('/books', authMiddleware, async (c) => serveStatic(c, '/books.html'));
 app.get('/books/new', authMiddleware, async (c) => serveStatic(c, '/books-new.html'));
 app.get('/groups', authMiddleware, async (c) => serveStatic(c, '/groups.html'));
+app.get('/reviews', authMiddleware, async (c) => serveStatic(c, '/reviews.html'));
 app.get('/reviews/new', authMiddleware, async (c) => serveStatic(c, '/reviews-new.html'));
 app.get('/groups/:id/meetings', authMiddleware, async (c) => serveStatic(c, '/meetings.html'));
 app.get('/groups/:id/manage', authMiddleware, async (c) => serveStatic(c, '/groups-manage.html'));
@@ -147,13 +158,11 @@ app.get('/api/reviews', async (c) => {
 });
 
 app.post('/api/reviews', authMiddleware, async (c) => {
-  c.set('request', c.req);
-  return handleAddReview(c, c.env);
+  return handleAddReview(c);
 });
 
 app.delete('/api/review/:id', authMiddleware, async (c) => {
-  c.set('request', c.req);
-  return handleDeleteReview(c.req.param('id'), c, c.env);
+  return handleDeleteReview(c.req.param('id'), c);
 });
 
 // Book API routes
@@ -170,8 +179,7 @@ app.get('/api/books', async (c) => {
 });
 
 app.post('/api/books', authMiddleware, async (c) => {
-  c.set('request', c.req);
-  return handleAddBook(c, c.env);
+  return handleAddBook(c);
 });
 
 app.delete('/api/books/:id', authMiddleware, async (c) => {
@@ -219,85 +227,121 @@ app.get('/api/groups/:id/members', async (c) => {
 });
 
 app.post('/api/groups', authMiddleware, async (c) => {
-  c.set('request', c.req);
-  return handleCreateGroup(c, c.env);
+  return handleCreateGroup(c);
 });
 
 app.post('/api/groups/:id/join', authMiddleware, async (c) => {
-  c.set('request', c.req);
-  return handleJoinGroup(c.req.param('id'), c, c.env);
+  return handleJoinGroup(c.req.param('id'), c);
 });
 
 app.post('/api/groups/:id/leave', authMiddleware, async (c) => {
-  c.set('request', c.req);
-  return handleLeaveGroup(c.req.param('id'), c, c.env);
+  return handleLeaveGroup(c.req.param('id'), c);
 });
 
 app.post('/api/groups/:id/invite', authMiddleware, async (c) => {
-  c.set('request', c.req);
-  return createGroupInvitation(c.req.param('id'), c, c.env);
+  return createGroupInvitation(c.req.param('id'), c);
 });
 
 app.post('/api/groups/:id/admins', authMiddleware, async (c) => {
-  c.set('request', c.req);
-  return handleMakeAdmin(c.req.param('id'), c, c.env);
+  return handleMakeAdmin(c.req.param('id'), c);
 });
 
 app.delete('/api/groups/:id/members/:userId', authMiddleware, async (c) => {
-  c.set('request', c.req);
-  return handleRemoveMember(c.req.param('id'), c.req.param('userId'), c, c.env);
+  return handleRemoveMember(c.req.param('id'), c.req.param('userId'), c);
 });
 
 app.delete('/api/groups/:id', authMiddleware, async (c) => {
-  c.set('request', c.req);
-  return handleDeleteGroup(c.req.param('id'), c, c.env);
+  return handleDeleteGroup(c.req.param('id'), c);
 });
 
 // Meeting API routes
 app.get('/api/groups/:id/meetings', authMiddleware, async (c) => {
   const user = c.get('user');
   const meetings = await c.env.DB.prepare(`
-    SELECT m.*, b.title as book_title,
-           COUNT(mp.user_id) as participant_count,
-           CASE WHEN mp2.user_id IS NOT NULL THEN 1 ELSE 0 END as is_registered
+    SELECT m.*,
+           COUNT(DISTINCT mp.user_id) as participant_count,
+           CASE WHEN mp2.user_id IS NOT NULL THEN 1 ELSE 0 END as is_registered,
+           u.username as created_by_username
     FROM meetings m
-    LEFT JOIN books b ON m.book_id = b.id
-    LEFT JOIN meeting_participants mp ON m.id = mp.meeting_id
-    LEFT JOIN meeting_participants mp2 ON m.id = mp2.meeting_id AND mp2.user_id = ?
+    LEFT JOIN meeting_participants mp ON m.id = mp.meeting_id AND mp.status = 'registered'
+    LEFT JOIN meeting_participants mp2 ON m.id = mp2.meeting_id AND mp2.user_id = ? AND mp2.status = 'registered'
+    LEFT JOIN users u ON m.created_by = u.id
     WHERE m.group_id = ?
     GROUP BY m.id
-    ORDER BY m.meeting_date DESC
+    ORDER BY m.start_time DESC
   `).bind(user.id, c.req.param('id')).all();
   
   return c.json(meetings.results);
 });
 
+app.get('/groups/:id/meetings/new', authMiddleware, async (c) => {
+  return handleMeetingCreationPage(c.req.param('id'), c, c.env);
+});
+
+app.post('/groups/:id/meetings', authMiddleware, async (c) => {
+  return handleCreateMeeting(c.req.param('id'), c, c.env);
+});
+
+app.get('/groups/:groupId/meetings/:meetingId', authMiddleware, async (c) => serveStatic(c, '/meeting-detail.html'));
+
+app.get('/api/groups/:groupId/meetings/:meetingId', authMiddleware, async (c) => {
+  const user = c.get('user');
+  const groupId = c.req.param('groupId');
+  const meetingId = c.req.param('meetingId');
+  
+  // Get meeting details
+  const meeting = await c.env.DB.prepare(`
+    SELECT m.*, u.username as created_by_username,
+           COUNT(DISTINCT mp.user_id) as participant_count,
+           CASE WHEN mp2.user_id IS NOT NULL THEN 1 ELSE 0 END as is_registered
+    FROM meetings m
+    LEFT JOIN users u ON m.created_by = u.id
+    LEFT JOIN meeting_participants mp ON m.id = mp.meeting_id AND mp.status = 'registered'
+    LEFT JOIN meeting_participants mp2 ON m.id = mp2.meeting_id AND mp2.user_id = ? AND mp2.status = 'registered'
+    WHERE m.id = ? AND m.group_id = ?
+    GROUP BY m.id
+  `).bind(user.id, meetingId, groupId).first();
+  
+  if (!meeting) {
+    return c.json({ error: '만남을 찾을 수 없습니다' }, 404);
+  }
+  
+  // Get participants list
+  const participants = await c.env.DB.prepare(`
+    SELECT u.id, u.username
+    FROM meeting_participants mp
+    JOIN users u ON mp.user_id = u.id
+    WHERE mp.meeting_id = ? AND mp.status = 'registered'
+    ORDER BY mp.registered_at
+  `).bind(meetingId).all();
+  
+  return c.json({
+    ...meeting,
+    participants: participants.results
+  });
+});
+
 app.post('/api/groups/:groupId/meetings/:meetingId/register', authMiddleware, async (c) => {
-  c.set('request', c.req);
   return handleMeetingRegistration(c.req.param('groupId'), c.req.param('meetingId'), c, c.env);
 });
 
 // Password reset routes
 app.post('/password-reset', async (c) => {
-  c.set('request', c.req);
-  return handlePasswordResetRequestPost(c, c.env);
+  return handlePasswordResetRequestPost(c);
 });
 
 app.post('/password-reset/:token', async (c) => {
-  c.set('request', c.req);
-  return handlePasswordResetPost(c.req.param('token'), c, c.env);
+  return handlePasswordResetPost(c.req.param('token'), c);
 });
 
 // Invitation routes
 app.post('/invite/:code/accept', async (c) => {
-  c.set('request', c.req);
-  return acceptGroupInvitation(c.req.param('code'), c, c.env);
+  return acceptGroupInvitation(c.req.param('code'), c);
 });
 
 // General invitation (admin only)
 app.post('/invitations/general', authMiddleware, async (c) => {
-  c.set('request', c.req);
-  return createGeneralInvitation(c, c.env);
+  return createGeneralInvitation(c);
 });
 
 // Catch-all for static assets

@@ -133,19 +133,14 @@ async function addBookToGroup(env, groupId, bookId) {
 
 
 // Handle creating a new group
-async function handleCreateGroup(request, env) {
-  const formData = await request.formData();
+async function handleCreateGroup(c) {
+  const formData = await c.req.formData();
   const name = formData.get('name');
   const description = formData.get('description');
+  const env = c.env;
   
   // Get the authenticated user
-  const cookieHeader = request.headers.get('Cookie');
-  const cookies = Object.fromEntries(
-    cookieHeader ? cookieHeader.split('; ').map(c => c.split('=')) : []
-  );
-  const token = cookies.auth_token;
-  
-  const user = await getUserFromToken(token, env);
+  const user = c.get('user');
   if (!user) {
     return new Response('Unauthorized', { status: 401 });
   }
@@ -171,19 +166,14 @@ async function handleCreateGroup(request, env) {
     console.log('group_admins table not found, skipping admin assignment');
   }
   
-  return Response.redirect(new URL('/groups', request.url), 303);
+  return Response.redirect(new URL('/groups', c.req.url), 303);
 }
 
 // Handle joining a group
-async function handleJoinGroup(groupId, request, env) {
+async function handleJoinGroup(groupId, c) {
+  const env = c.env;
   // Get the authenticated user
-  const cookieHeader = request.headers.get('Cookie');
-  const cookies = Object.fromEntries(
-    cookieHeader ? cookieHeader.split('; ').map(c => c.split('=')) : []
-  );
-  const token = cookies.auth_token;
-  
-  const user = await getUserFromToken(token, env);
+  const user = c.get('user');
   if (!user) {
     return new Response('Unauthorized', { status: 401 });
   }
@@ -211,15 +201,10 @@ async function handleJoinGroup(groupId, request, env) {
 }
 
 // Handle leaving a group
-async function handleLeaveGroup(groupId, request, env) {
+async function handleLeaveGroup(groupId, c) {
+  const env = c.env;
   // Get the authenticated user
-  const cookieHeader = request.headers.get('Cookie');
-  const cookies = Object.fromEntries(
-    cookieHeader ? cookieHeader.split('; ').map(c => c.split('=')) : []
-  );
-  const token = cookies.auth_token;
-  
-  const user = await getUserFromToken(token, env);
+  const user = c.get('user');
   if (!user) {
     return new Response('Unauthorized', { status: 401 });
   }
@@ -283,15 +268,10 @@ async function handleLeaveGroup(groupId, request, env) {
 
 
 // Handle removing a member from group (admin only)
-async function handleRemoveMember(groupId, userId, request, env) {
+async function handleRemoveMember(groupId, userId, c) {
+  const env = c.env;
   // Get the authenticated user
-  const cookieHeader = request.headers.get('Cookie');
-  const cookies = Object.fromEntries(
-    cookieHeader ? cookieHeader.split('; ').map(c => c.split('=')) : []
-  );
-  const token = cookies.auth_token;
-  
-  const user = await getUserFromToken(token, env);
+  const user = c.get('user');
   if (!user) {
     return new Response('Unauthorized', { status: 401 });
   }
@@ -330,17 +310,12 @@ async function handleRemoveMember(groupId, userId, request, env) {
 }
 
 // Handle making a member admin
-async function handleMakeAdmin(groupId, request, env) {
-  const { user_id } = await request.json();
+async function handleMakeAdmin(groupId, c) {
+  const { user_id } = await c.req.json();
+  const env = c.env;
   
   // Get the authenticated user
-  const cookieHeader = request.headers.get('Cookie');
-  const cookies = Object.fromEntries(
-    cookieHeader ? cookieHeader.split('; ').map(c => c.split('=')) : []
-  );
-  const token = cookies.auth_token;
-  
-  const user = await getUserFromToken(token, env);
+  const user = c.get('user');
   if (!user) {
     return new Response('Unauthorized', { status: 401 });
   }
@@ -371,15 +346,10 @@ async function handleMakeAdmin(groupId, request, env) {
 }
 
 // Handle deleting a group
-async function handleDeleteGroup(groupId, request, env) {
+async function handleDeleteGroup(groupId, c) {
+  const env = c.env;
   // Get the authenticated user
-  const cookieHeader = request.headers.get('Cookie');
-  const cookies = Object.fromEntries(
-    cookieHeader ? cookieHeader.split('; ').map(c => c.split('=')) : []
-  );
-  const token = cookies.auth_token;
-  
-  const user = await getUserFromToken(token, env);
+  const user = c.get('user');
   if (!user) {
     return new Response('Unauthorized', { status: 401 });
   }

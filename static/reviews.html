@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>독후감 - 읽고 난 뒤</title>
+    <link rel="stylesheet" href="/styles/base.css">
+    <style>
+        .reviews-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .reviews-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .reviews-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .review-card {
+            background: white;
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.2s ease;
+        }
+        
+        .review-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        
+        .review-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+        
+        .book-info h3 {
+            font-size: 18px;
+            margin: 0 0 5px 0;
+            font-weight: 500;
+        }
+        
+        .book-author {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .reviewer {
+            font-size: 13px;
+            color: #999;
+        }
+        
+        .review-meta {
+            text-align: right;
+        }
+        
+        .rating {
+            font-size: 16px;
+            color: #f39c12;
+            margin-bottom: 5px;
+        }
+        
+        .review-date {
+            font-size: 13px;
+            color: #999;
+        }
+        
+        .review-content {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #333;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .empty-state h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            font-weight: 400;
+        }
+        
+        .empty-state p {
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .reviews-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+            }
+            
+            .reviews-header h1 {
+                font-size: 24px;
+            }
+            
+            .review-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .review-meta {
+                text-align: left;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <a href="/" class="logo">읽고 난 뒤</a>
+            <button class="menu-toggle" onclick="toggleMobileMenu()">☰</button>
+            <div class="nav-menu">
+                <a href="/books">책</a>
+                <a href="/groups">모임</a>
+                <a href="/reviews" class="active">독후감</a>
+                <a href="/meetings">만남</a>
+                <a href="/profile">프로필</a>
+                <a href="/logout">로그아웃</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="reviews-container">
+        <div class="reviews-header">
+            <h1>독후감</h1>
+            <a href="/reviews/new" class="button">독후감 쓰기</a>
+        </div>
+        
+        <div class="reviews-list" id="reviewsList">
+            <div class="loading">독후감을 불러오는 중...</div>
+        </div>
+    </div>
+
+    <script>
+        async function loadReviews() {
+            try {
+                const response = await fetch('/api/reviews');
+                if (!response.ok) throw new Error('Failed to load reviews');
+                
+                const reviews = await response.json();
+                const reviewsList = document.getElementById('reviewsList');
+                
+                if (reviews.length === 0) {
+                    reviewsList.innerHTML = `
+                        <div class="empty-state">
+                            <h3>아직 작성된 독후감이 없습니다</h3>
+                            <p>첫 독후감을 작성해보세요!</p>
+                            <a href="/reviews/new" class="button">독후감 쓰기</a>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                reviewsList.innerHTML = reviews.map(review => `
+                    <div class="review-card" onclick="location.href='/review/${review.id}'">
+                        <div class="review-header">
+                            <div class="book-info">
+                                <h3>${escapeHtml(review.title)}</h3>
+                                <div class="book-author">${escapeHtml(review.author)}</div>
+                                <div class="reviewer">작성자: ${escapeHtml(review.username)}</div>
+                            </div>
+                            <div class="review-meta">
+                                <div class="rating">${'★'.repeat(review.rating)}${'☆'.repeat(5-review.rating)}</div>
+                                <div class="review-date">${formatDate(review.created_at)}</div>
+                            </div>
+                        </div>
+                        <div class="review-content">
+                            ${escapeHtml(review.review)}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading reviews:', error);
+                document.getElementById('reviewsList').innerHTML = `
+                    <div class="empty-state">
+                        <h3>독후감을 불러올 수 없습니다</h3>
+                        <p>잠시 후 다시 시도해주세요</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = now - date;
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            
+            if (days === 0) {
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                if (hours === 0) {
+                    const minutes = Math.floor(diff / (1000 * 60));
+                    return minutes === 0 ? '방금 전' : `${minutes}분 전`;
+                }
+                return `${hours}시간 전`;
+            } else if (days === 1) {
+                return '어제';
+            } else if (days < 7) {
+                return `${days}일 전`;
+            } else {
+                return date.toLocaleDateString('ko-KR');
+            }
+        }
+        
+        function toggleMobileMenu() {
+            const navMenu = document.querySelector('.nav-menu');
+            navMenu.classList.toggle('active');
+        }
+        
+        // Load reviews on page load
+        loadReviews();
+    </script>
+</body>
+</html>

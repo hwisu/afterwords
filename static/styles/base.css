@@ -22,6 +22,7 @@ body {
     max-width: 800px;
     margin: 0 auto;
     width: 100%;
+    padding: 0 5px;
 }
 
 /* Typography */
@@ -185,11 +186,11 @@ a:hover {
 /* Mobile Responsive */
 @media (max-width: 768px) {
     body {
-        padding: 70px 15px 15px;
+        padding: 70px 20px 20px;
     }
     
     .nav-container {
-        padding: 0 15px;
+        padding: 0 20px;
     }
     
     .nav-logo-center {

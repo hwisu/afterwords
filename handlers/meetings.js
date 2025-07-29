@@ -4,10 +4,10 @@ import { getAllBooks } from './books.js';
 /**
  * Handle meeting creation page
  */
-export async function handleMeetingCreationPage(groupId, request, env) {
-  const user = await getUserFromRequest(request, env);
+export async function handleMeetingCreationPage(groupId, c, env) {
+  const user = c.get('user');
   if (!user) {
-    return Response.redirect(new URL('/login', request.url), 303);
+    return Response.redirect(new URL('/login', c.req.url), 303);
   }
   
   // Check if user is admin
@@ -16,7 +16,7 @@ export async function handleMeetingCreationPage(groupId, request, env) {
     return new Response('권한이 없습니다.', { status: 403 });
   }
   
-  // Get group details
+  // Get group details to verify it exists and user has access
   const group = await env.DB.prepare('SELECT * FROM groups WHERE id = ? AND deleted_at IS NULL')
     .bind(groupId).first();
   
@@ -24,22 +24,23 @@ export async function handleMeetingCreationPage(groupId, request, env) {
     return new Response('모임을 찾을 수 없습니다.', { status: 404 });
   }
   
-  // Get all books for the requirement selector
-  const books = await getAllBooks(env);
+  // Return the static HTML file
+  if (c.env.ASSETS) {
+    const url = new URL(c.req.url);
+    url.pathname = '/meetings-new.html';
+    return c.env.ASSETS.fetch(url);
+  }
   
-  const html = await renderMeetingCreationPage(groupId, group, books);
-  return new Response(html, {
-    headers: { 'Content-Type': 'text/html;charset=UTF-8' },
-  });
+  return c.text('ASSETS binding not available', 500);
 }
 
 /**
  * Handle meeting creation
  */
-export async function handleCreateMeeting(groupId, request, env) {
-  const user = await getUserFromRequest(request, env);
+export async function handleCreateMeeting(groupId, c, env) {
+  const user = c.get('user');
   if (!user) {
-    return Response.redirect(new URL('/login', request.url), 303);
+    return Response.redirect(new URL('/login', c.req.url), 303);
   }
   
   // Check if user is admin
@@ -48,26 +49,24 @@ export async function handleCreateMeeting(groupId, request, env) {
     return new Response('권한이 없습니다.', { status: 403 });
   }
   
-  const formData = await request.formData();
+  const data = await c.req.json();
   
-  // Parse form data
-  const title = formData.get('title');
-  const description = formData.get('description');
-  const startDate = formData.get('start_date');
-  const startTime = formData.get('start_time');
-  const endDate = formData.get('end_date');
-  const endTime = formData.get('end_time');
-  const locationType = formData.get('location_type');
-  const locationName = formData.get('location_name') || formData.get('online_platform');
-  const locationAddress = formData.get('location_address');
-  const onlineUrl = formData.get('online_url');
-  const maxParticipants = formData.get('max_participants') ? parseInt(formData.get('max_participants')) : null;
-  const requireReview = formData.get('require_review') === 'true';
-  const requiredBookId = formData.get('required_book_id');
+  // Parse data
+  const {
+    title,
+    description,
+    start_time,
+    end_time,
+    location_type: locationType,
+    location_name: locationName,
+    location_address: locationAddress,
+    online_url: onlineUrl,
+    max_participants: maxParticipants
+  } = data;
   
-  // Create timezone-aware datetime strings (assuming KST)
-  const startDateTime = new Date(`${startDate}T${startTime}:00+09:00`).toISOString();
-  const endDateTime = new Date(`${endDate}T${endTime}:00+09:00`).toISOString();
+  // Validate datetime strings
+  const startDateTime = new Date(start_time).toISOString();
+  const endDateTime = new Date(end_time).toISOString();
   
   // Validate times
   if (new Date(endDateTime) <= new Date(startDateTime)) {
@@ -92,32 +91,7 @@ export async function handleCreateMeeting(groupId, request, env) {
       maxParticipants, user.id, now, now
     ).run();
     
-    // Create requirement if needed
-    if (requireReview && requiredBookId) {
-      // Get book details
-      const book = await env.DB.prepare('SELECT title, author FROM books WHERE id = ?')
-        .bind(requiredBookId).first();
-      
-      if (book) {
-        const requirementId = crypto.randomUUID();
-        const requirementData = JSON.stringify({
-          book_id: requiredBookId,
-          book_title: book.title,
-          book_author: book.author,
-          group_id: groupId
-        });
-        
-        await env.DB.prepare(`
-          INSERT INTO meeting_requirements (
-            id, meeting_id, requirement_type, requirement_data, display_order, created_at
-          ) VALUES (?, ?, ?, ?, ?, ?)
-        `).bind(
-          requirementId, meetingId, 'book_review', requirementData, 0, now
-        ).run();
-      }
-    }
-    
-    return Response.redirect(new URL(`/groups/${groupId}/meetings`, request.url), 303);
+    return Response.redirect(new URL(`/groups/${groupId}/meetings`, c.req.url), 303);
   } catch (error) {
     console.error('Failed to create meeting:', error);
     return new Response('만남 생성에 실패했습니다.', { status: 500 });
@@ -127,16 +101,16 @@ export async function handleCreateMeeting(groupId, request, env) {
 /**
  * Handle meetings list page
  */
-export async function handleMeetingsListPage(groupId, request, env) {
-  const user = await getUserFromRequest(request, env);
+export async function handleMeetingsListPage(groupId, c, env) {
+  const user = c.get('user');
   if (!user) {
-    return Response.redirect(new URL('/login', request.url), 303);
+    return Response.redirect(new URL('/login', c.req.url), 303);
   }
   
   // Verify group access
   const accessResult = await verifyGroupAccess(env, user.id, groupId);
-  if (!accessResult.allowed) {
-    return new Response(accessResult.reason, { status: 403 });
+  if (!accessResult.hasAccess) {
+    return new Response('이 모임에 접근할 권한이 없습니다.', { status: 403 });
   }
   
   // Get group details
@@ -242,16 +216,16 @@ async function checkMeetingRequirements(env, meetingId, userId) {
 /**
  * Handle meeting registration
  */
-export async function handleMeetingRegistration(groupId, meetingId, request, env) {
-  const user = await getUserFromRequest(request, env);
+export async function handleMeetingRegistration(groupId, meetingId, c, env) {
+  const user = c.get('user');
   if (!user) {
-    return Response.redirect(new URL('/login', request.url), 303);
+    return Response.redirect(new URL('/login', c.req.url), 303);
   }
   
   // Verify group access
   const accessResult = await verifyGroupAccess(env, user.id, groupId);
-  if (!accessResult.allowed) {
-    return new Response(accessResult.reason, { status: 403 });
+  if (!accessResult.hasAccess) {
+    return new Response('이 모임에 접근할 권한이 없습니다.', { status: 403 });
   }
   
   // Get meeting details
@@ -311,22 +285,22 @@ export async function handleMeetingRegistration(groupId, meetingId, request, env
     meetingId, user.id, 'registered', new Date().toISOString()
   ).run();
   
-  return Response.redirect(new URL(`/groups/${groupId}/meetings/${meetingId}`, request.url), 303);
+  return Response.redirect(new URL(`/groups/${groupId}/meetings/${meetingId}`, c.req.url), 303);
 }
 
 /**
  * Handle meeting detail page
  */
-export async function handleMeetingDetailPage(groupId, meetingId, request, env) {
-  const user = await getUserFromRequest(request, env);
+export async function handleMeetingDetailPage(groupId, meetingId, c, env) {
+  const user = c.get('user');
   if (!user) {
-    return Response.redirect(new URL('/login', request.url), 303);
+    return Response.redirect(new URL('/login', c.req.url), 303);
   }
   
   // Verify group access
   const accessResult = await verifyGroupAccess(env, user.id, groupId);
-  if (!accessResult.allowed) {
-    return new Response(accessResult.reason, { status: 403 });
+  if (!accessResult.hasAccess) {
+    return new Response('이 모임에 접근할 권한이 없습니다.', { status: 403 });
   }
   
   // Get meeting details with requirements
@@ -366,24 +340,14 @@ export async function handleMeetingDetailPage(groupId, meetingId, request, env) 
                      (!meeting.max_participants || participants.results.length < meeting.max_participants);
   
   // Combine data
-  const meetingData = {
-    ...meeting,
-    requirements: requirements.results,
-    participants: participants.results
-  };
+  // Return the static HTML file
+  if (c.env.ASSETS) {
+    const url = new URL(c.req.url);
+    url.pathname = '/meetings.html';
+    return c.env.ASSETS.fetch(url);
+  }
   
-  const html = await renderMeetingDetailPage(
-    groupId, 
-    meetingData, 
-    user, 
-    isRegistered, 
-    canRegister, 
-    requirementsCheck.unmetRequirements
-  );
-  
-  return new Response(html, {
-    headers: { 'Content-Type': 'text/html;charset=UTF-8' },
-  });
+  return c.text('ASSETS binding not available', 500);
 }
 
 export { checkMeetingRequirements };

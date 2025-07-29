@@ -12,15 +12,10 @@ function generateInviteCode() {
 }
 
 // Create group invitation
-async function createGroupInvitation(groupId, request, env) {
+async function createGroupInvitation(groupId, c) {
+  const env = c.env;
   // Get the authenticated user
-  const cookieHeader = request.headers.get('Cookie');
-  const cookies = Object.fromEntries(
-    cookieHeader ? cookieHeader.split('; ').map(c => c.split('=')) : []
-  );
-  const token = cookies.auth_token;
-  
-  const user = await getUserFromToken(token, env);
+  const user = c.get('user');
   if (!user) {
     return new Response('Unauthorized', { status: 401 });
   }
@@ -79,7 +74,7 @@ async function createGroupInvitation(groupId, request, env) {
   `).bind(id, groupId, inviteCode, user.id, createdAt, expiresAt, 10, 0).run();
   
   // Return the invite link
-  const inviteUrl = new URL(`/invite/${inviteCode}`, request.url).toString();
+  const inviteUrl = new URL(`/invite/${inviteCode}`, c.req.url).toString();
   return new Response(JSON.stringify({ 
     code: inviteCode, 
     url: inviteUrl,
@@ -90,9 +85,10 @@ async function createGroupInvitation(groupId, request, env) {
 }
 
 // Handle invitation acceptance
-async function acceptGroupInvitation(inviteCode, request, env) {
+async function acceptGroupInvitation(inviteCode, c) {
+  const env = c.env;
   // Get the authenticated user
-  const cookieHeader = request.headers.get('Cookie');
+  const cookieHeader = c.req.header('Cookie');
   const cookies = Object.fromEntries(
     cookieHeader ? cookieHeader.split('; ').map(c => c.split('=')) : []
   );
@@ -100,7 +96,7 @@ async function acceptGroupInvitation(inviteCode, request, env) {
   
   if (!token) {
     // No auth token, redirect to signup
-    const redirectUrl = new URL('/signup', request.url);
+    const redirectUrl = new URL('/signup', c.req.url);
     redirectUrl.searchParams.set('invite', inviteCode);
     redirectUrl.searchParams.set('type', 'group');
     return Response.redirect(redirectUrl, 303);
@@ -109,7 +105,7 @@ async function acceptGroupInvitation(inviteCode, request, env) {
   const tokenResult = await env.DB.prepare('SELECT * FROM auth_tokens WHERE token = ?').bind(token).first();
   if (!tokenResult) {
     // Invalid token, redirect to signup
-    const redirectUrl = new URL('/signup', request.url);
+    const redirectUrl = new URL('/signup', c.req.url);
     redirectUrl.searchParams.set('invite', inviteCode);
     redirectUrl.searchParams.set('type', 'group');
     return Response.redirect(redirectUrl, 303);
@@ -162,20 +158,15 @@ async function acceptGroupInvitation(inviteCode, request, env) {
   ).bind(invitation.id).run();
   
   // Redirect to groups page with success message
-  return Response.redirect(new URL(`/groups?joined=${encodeURIComponent(invitation.group_name)}`, request.url), 303);
+  return Response.redirect(new URL(`/groups?joined=${encodeURIComponent(invitation.group_name)}`, c.req.url), 303);
 }
 
 // Render invitation page
 // Create general invitation (for new user signup)
-async function createGeneralInvitation(request, env) {
+async function createGeneralInvitation(c) {
+  const env = c.env;
   // Get the authenticated user
-  const cookieHeader = request.headers.get('Cookie');
-  const cookies = Object.fromEntries(
-    cookieHeader ? cookieHeader.split('; ').map(c => c.split('=')) : []
-  );
-  const token = cookies.auth_token;
-  
-  const user = await getUserFromToken(token, env);
+  const user = c.get('user');
   if (!user) {
     return new Response('Unauthorized', { status: 401 });
   }
@@ -207,7 +198,7 @@ async function createGeneralInvitation(request, env) {
   `).bind(id, inviteCode, user.id, createdAt, expiresAt, 10, 0).run();
   
   // Return the invite link
-  const inviteUrl = new URL(`/invite/${inviteCode}`, request.url).toString();
+  const inviteUrl = new URL(`/invite/${inviteCode}`, c.req.url).toString();
   return new Response(JSON.stringify({ 
     code: inviteCode, 
     url: inviteUrl,

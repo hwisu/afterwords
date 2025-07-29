@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>만남 상세 - 읽고 난 뒤</title>
+    <link rel="stylesheet" href="/styles/base.css">
+    <link rel="stylesheet" href="/styles/components.css">
+    <link rel="stylesheet" href="/styles/meetings.css">
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <div class="nav-spacer"></div>
+            <a href="/" class="nav-logo-center">읽고 난 뒤</a>
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+            <div class="nav-links" id="navLinks">
+                <a href="/reviews/new">독후감 쓰기</a>
+                <a href="/books">책 마당</a>
+                <a href="/groups">함께 읽기</a>
+                <a href="/profile">내 정보</a>
+                <a href="/logout">나가기</a>
+            </div>
+        </div>
+    </nav>
+    
+    <div id="flashMessage" class="flash-message" style="display: none;"></div>
+    
+    <div class="container">
+        <a href="#" onclick="history.back(); return false;" class="back-link">← 뒤로가기</a>
+        
+        <div class="meeting-detail" id="meetingDetail">
+            <!-- Meeting details will be loaded here -->
+        </div>
+    </div>
+    
+    <script src="/scripts/base.js"></script>
+    <script>
+        let groupId, meetingId;
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Get IDs from URL
+            const pathParts = window.location.pathname.split('/');
+            groupId = pathParts[2];
+            meetingId = pathParts[4];
+            
+            if (!groupId || !meetingId) {
+                window.location.href = '/groups';
+                return;
+            }
+            
+            await loadMeetingDetail();
+        });
+        
+        async function loadMeetingDetail() {
+            try {
+                const response = await fetch(`/api/groups/${groupId}/meetings/${meetingId}`);
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        showFlashMessage('만남을 찾을 수 없습니다.');
+                        setTimeout(() => history.back(), 2000);
+                        return;
+                    }
+                    throw new Error('Failed to fetch meeting');
+                }
+                
+                const meeting = await response.json();
+                displayMeetingDetail(meeting);
+            } catch (error) {
+                console.error('만남 정보를 불러오는 데 실패했습니다:', error);
+                showFlashMessage('만남 정보를 불러오는 데 실패했습니다.');
+            }
+        }
+        
+        function displayMeetingDetail(meeting) {
+            const startDate = new Date(meeting.start_time);
+            const endDate = new Date(meeting.end_time);
+            const now = new Date();
+            const isPast = endDate < now;
+            const canRegister = !isPast && !meeting.is_registered && 
+                                (!meeting.max_participants || meeting.participant_count < meeting.max_participants);
+            
+            const detailDiv = document.getElementById('meetingDetail');
+            detailDiv.innerHTML = `
+                <div class="meeting-header-detail">
+                    <h1>${escapeHtml(meeting.title)}</h1>
+                    ${meeting.description ? `<p class="meeting-description">${escapeHtml(meeting.description)}</p>` : ''}
+                </div>
+                
+                <div class="meeting-info-grid">
+                    <div class="info-item">
+                        <span class="info-label">📅 날짜</span>
+                        <span class="info-value">${startDate.toLocaleDateString('ko-KR', { 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric', 
+                            weekday: 'long' 
+                        })}</span>
+                    </div>
+                    
+                    <div class="info-item">
+                        <span class="info-label">⏰ 시간</span>
+                        <span class="info-value">${startDate.toLocaleTimeString('ko-KR', { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                        })} - ${endDate.toLocaleTimeString('ko-KR', { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                        })}</span>
+                    </div>
+                    
+                    <div class="info-item">
+                        <span class="info-label">📍 장소</span>
+                        <span class="info-value">
+                            ${escapeHtml(meeting.location_name || '장소 미정')}
+                            ${meeting.location_type === 'offline' && meeting.location_address ? 
+                                `<br><small>${escapeHtml(meeting.location_address)}</small>` : ''}
+                            ${meeting.location_type === 'online' && meeting.online_url ? 
+                                `<br><a href="${escapeHtml(meeting.online_url)}" target="_blank" class="online-link">온라인 미팅 참가</a>` : ''}
+                        </span>
+                    </div>
+                    
+                    <div class="info-item">
+                        <span class="info-label">👥 참가자</span>
+                        <span class="info-value">${meeting.participant_count || 0}명 / ${meeting.max_participants ? meeting.max_participants + '명' : '제한없음'}</span>
+                    </div>
+                    
+                    <div class="info-item">
+                        <span class="info-label">👤 주최자</span>
+                        <span class="info-value">${escapeHtml(meeting.created_by_username || '알 수 없음')}</span>
+                    </div>
+                </div>
+                
+                <div class="meeting-actions-detail">
+                    ${meeting.is_registered ? 
+                        '<span class="status-badge registered">✅ 참석 신청 완료</span>' : 
+                        canRegister ? 
+                            '<button onclick="registerMeeting()" class="btn btn-primary">참석 신청</button>' :
+                            isPast ? 
+                                '<span class="status-badge past">종료된 만남</span>' :
+                                '<span class="status-badge full">정원 마감</span>'
+                    }
+                </div>
+                
+                ${meeting.participants && meeting.participants.length > 0 ? `
+                    <div class="participants-section">
+                        <h3>참가자 목록</h3>
+                        <div class="participants-list">
+                            ${meeting.participants.map(p => `
+                                <span class="participant-badge">${escapeHtml(p.username)}</span>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+        }
+        
+        async function registerMeeting() {
+            try {
+                const response = await fetch(`/api/groups/${groupId}/meetings/${meetingId}/register`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    showFlashMessage('참석 신청이 완료되었습니다.');
+                    await loadMeetingDetail(); // Reload to update UI
+                } else {
+                    const error = await response.text();
+                    showFlashMessage(error || '참석 신청에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('참석 신청 중 오류:', error);
+                showFlashMessage('참석 신청 중 오류가 발생했습니다.');
+            }
+        }
+    </script>
+</body>
+</html>

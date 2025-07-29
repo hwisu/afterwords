@@ -22,12 +22,13 @@ async function getReviewsByBook(bookId, env) {
 
 
 // Handle adding a new book
-async function handleAddBook(request, env) {
-  const formData = await request.formData();
+async function handleAddBook(c) {
+  const formData = await c.req.formData();
   const title = formData.get('title');
   const author = formData.get('author');
   const isbn = formData.get('isbn') || null;
   const page_count = formData.get('page_count') ? parseInt(formData.get('page_count')) : null;
+  const env = c.env;
   
   // Check if book already exists
   const existing = await env.DB.prepare('SELECT id FROM books WHERE title = ? AND author = ?')
@@ -68,12 +69,13 @@ async function handleAddBook(request, env) {
 
 
 // Handle updating book
-async function handleUpdateBook(bookId, request, env) {
-  const formData = await request.formData();
+async function handleUpdateBook(bookId, c) {
+  const formData = await c.req.formData();
   const title = formData.get('title');
   const author = formData.get('author');
   const isbn = formData.get('isbn') || null;
   const page_count = formData.get('page_count') ? parseInt(formData.get('page_count')) : null;
+  const env = c.env;
   
   // Check if another book with same ISBN exists (if ISBN provided)
   if (isbn) {
@@ -91,7 +93,7 @@ async function handleUpdateBook(bookId, request, env) {
     'UPDATE books SET title = ?, author = ?, isbn = ?, page_count = ? WHERE id = ?'
   ).bind(title, author, isbn, page_count, bookId).run();
   
-  return Response.redirect(new URL('/books', request.url), 303);
+  return Response.redirect(new URL('/books', c.req.url), 303);
 }
 
 // Handle deleting book

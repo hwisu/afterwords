@@ -22,9 +22,10 @@ export async function handlePasswordResetRequest(request, env) {
 /**
  * Handle password reset request form submission
  */
-export async function handlePasswordResetRequestPost(request, env) {
-  const formData = await request.formData();
+export async function handlePasswordResetRequestPost(c) {
+  const formData = await c.req.formData();
   const email = formData.get('email');
+  const env = c.env;
   
   // Find user by email
   const user = await env.DB.prepare(
@@ -93,10 +94,11 @@ export async function handlePasswordResetPage(token, request, env) {
 /**
  * Handle password reset form submission
  */
-export async function handlePasswordResetPost(token, request, env) {
-  const formData = await request.formData();
+export async function handlePasswordResetPost(token, c) {
+  const formData = await c.req.formData();
   const password = formData.get('password');
   const passwordConfirm = formData.get('password_confirm');
+  const env = c.env;
   
   // Verify token
   const tokenData = await env.DB.prepare(`

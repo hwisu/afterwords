@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>새 만남 만들기 - Afterwords</title>
+  <link rel="stylesheet" href="/styles/base.css">
+  <link rel="stylesheet" href="/styles/components.css">
+  <link rel="stylesheet" href="/styles/meetings.css">
+</head>
+<body>
+  <nav class="nav-bar">
+    <div class="nav-container">
+      <div class="nav-spacer"></div>
+      <a href="/" class="nav-logo-center">읽고 난 뒤</a>
+      <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+      <div class="nav-links" id="navLinks">
+        <a href="/reviews/new">독후감 쓰기</a>
+        <a href="/books">책 마당</a>
+        <a href="/groups" class="active">함께 읽기</a>
+        <a href="/profile">내 정보</a>
+        <a href="/logout">나가기</a>
+      </div>
+    </div>
+  </nav>
+
+  <div id="flashMessage" class="flash-message" style="display: none;"></div>
+
+  <div class="container">
+    <div id="backBtn">
+      <a href="#" onclick="history.back(); return false;">← 뒤로가기</a>
+    </div>
+
+    <h1>새 만남 만들기</h1>
+
+    <form id="meetingForm">
+      <div class="form-group">
+        <label for="title">만남 제목</label>
+        <input type="text" id="title" name="title" required>
+      </div>
+
+      <div class="form-group">
+        <label for="description">설명</label>
+        <textarea id="description" name="description" rows="4"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="start_time">시작 시간</label>
+        <input type="datetime-local" id="start_time" name="start_time" required>
+      </div>
+
+      <div class="form-group">
+        <label for="end_time">종료 시간</label>
+        <input type="datetime-local" id="end_time" name="end_time" required>
+      </div>
+
+      <div class="form-group">
+        <label>장소 유형</label>
+        <div class="radio-group" style="display: flex; gap: 30px; margin-top: 10px;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
+            <input type="radio" name="location_type" value="offline" checked onchange="toggleLocationFields()" style="margin: 0;">
+            <span>오프라인</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; white-space: nowrap;">
+            <input type="radio" name="location_type" value="online" onchange="toggleLocationFields()" style="margin: 0;">
+            <span>온라인</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group" id="location_name_group">
+        <label for="location_name">장소 이름</label>
+        <input type="text" id="location_name" name="location_name" placeholder="예: 스타벅스 강남점">
+      </div>
+
+      <div class="form-group" id="location_address_group">
+        <label for="location_address">장소 주소</label>
+        <input type="text" id="location_address" name="location_address" placeholder="예: 서울특별시 강남구 테헤란로 123">
+      </div>
+
+      <div class="form-group" id="online_url_group" style="display: none;">
+        <label for="online_url">온라인 미팅 URL</label>
+        <input type="url" id="online_url" name="online_url" placeholder="예: https://zoom.us/j/123456789">
+        <small style="color: #666;">Zoom, Google Meet, Teams 등의 미팅 링크를 입력하세요</small>
+      </div>
+
+      <div class="form-group">
+        <label for="max_participants">최대 참가자 수 (선택사항)</label>
+        <input type="number" id="max_participants" name="max_participants" min="1">
+      </div>
+
+      <button type="submit" class="btn btn-primary">만남 만들기</button>
+    </form>
+
+    <div id="errorMessage" class="error-message" style="display: none;"></div>
+  </div>
+
+  <script>
+    function toggleMobileMenu() {
+      const navLinks = document.getElementById('navLinks');
+      navLinks.classList.toggle('active');
+    }
+    const groupId = window.location.pathname.match(/\/groups\/([^\/]+)/)[1];
+
+    function toggleLocationFields() {
+      const locationType = document.querySelector('input[name="location_type"]:checked').value;
+      const locationNameInput = document.getElementById('location_name');
+      
+      if (locationType === 'offline') {
+        document.getElementById('location_name_group').style.display = 'block';
+        document.getElementById('location_address_group').style.display = 'block';
+        document.getElementById('online_url_group').style.display = 'none';
+        document.getElementById('location_address').required = true;
+        document.getElementById('online_url').required = false;
+        locationNameInput.placeholder = '예: 스타벅스 강남점';
+      } else {
+        document.getElementById('location_name_group').style.display = 'block';
+        document.getElementById('location_address_group').style.display = 'none';
+        document.getElementById('online_url_group').style.display = 'block';
+        document.getElementById('location_address').required = false;
+        document.getElementById('online_url').required = true;
+        locationNameInput.placeholder = '예: Zoom, Google Meet, Teams';
+      }
+    }
+
+    document.getElementById('meetingForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const formData = new FormData(e.target);
+      const data = Object.fromEntries(formData);
+      
+      // Convert datetime-local to ISO string with timezone
+      data.start_time = new Date(data.start_time).toISOString();
+      data.end_time = new Date(data.end_time).toISOString();
+      
+      try {
+        const response = await fetch(`/groups/${groupId}/meetings`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          window.location.href = `/groups/${groupId}/meetings`;
+        } else {
+          const error = await response.text();
+          document.getElementById('errorMessage').textContent = error;
+          document.getElementById('errorMessage').style.display = 'block';
+        }
+      } catch (error) {
+        document.getElementById('errorMessage').textContent = '만남 생성 중 오류가 발생했습니다.';
+        document.getElementById('errorMessage').style.display = 'block';
+      }
+    });
+
+    // Initialize location fields
+    toggleLocationFields();
+  </script>
+</body>
+</html>

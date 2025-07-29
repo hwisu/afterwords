@@ -15,18 +15,19 @@ label {
 
 input, select, textarea {
     width: 100%;
-    padding: 10px 0;
-    border: none;
-    border-bottom: 1px solid rgba(0,0,0,0.1);
+    padding: 12px;
+    border: 1px solid rgba(0,0,0,0.1);
     font-size: 15px;
     font-family: inherit;
-    background: transparent;
+    background: rgba(0,0,0,0.02);
     font-weight: 300;
+    border-radius: 4px;
 }
 
 input:focus, textarea:focus, select:focus {
     outline: none;
-    border-bottom: 1px solid rgba(0,0,0,0.3);
+    border: 1px solid rgba(0,0,0,0.2);
+    background: white;
 }
 
 textarea {

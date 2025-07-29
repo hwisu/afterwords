@@ -51,10 +51,11 @@ function generateAuthToken() {
 }
 
 // Handle login form submission
-async function handleLoginPost(request, env) {
-  const formData = await request.formData();
+async function handleLoginPost(c) {
+  const formData = await c.req.formData();
   const username = formData.get('username');
   const password = formData.get('password');
+  const env = c.env;
   
   // Get user from database
   const user = await env.DB.prepare('SELECT * FROM users WHERE username = ?').bind(username).first();
@@ -103,11 +104,12 @@ async function handleLogout() {
 
 
 // Handle signup form submission
-async function handleSignupPost(request, env) {
-  const formData = await request.formData();
+async function handleSignupPost(c) {
+  const formData = await c.req.formData();
   const username = formData.get('username');
   const email = formData.get('email');
   const password = formData.get('password');
+  const env = c.env;
   const passwordConfirm = formData.get('password_confirm');
   const inviteCode = formData.get('invite_code');
   const inviteType = formData.get('invite_type');

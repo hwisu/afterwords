@@ -80,36 +80,44 @@ function displayMeetings(meetings) {
     }
     
     // Sort meetings by date (upcoming first)
-    meetings.sort((a, b) => new Date(a.meeting_date) - new Date(b.meeting_date));
+    meetings.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
     
     meetingsDiv.innerHTML = meetings.map(meeting => {
-        const meetingDate = new Date(meeting.meeting_date);
-        const isPast = meetingDate < new Date();
+        const startDate = new Date(meeting.start_time);
+        const endDate = new Date(meeting.end_time);
+        const now = new Date();
+        const isPast = endDate < now;
+        const currentYear = now.getFullYear();
+        const meetingYear = startDate.getFullYear();
+        
+        // Format date - skip year if same as current
+        const dateOptions = meetingYear === currentYear ? 
+            { month: 'long', day: 'numeric', weekday: 'short' } :
+            { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' };
+        
+        const formattedDate = startDate.toLocaleDateString('ko-KR', dateOptions);
+        const startTime = startDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+        const endTime = endDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
         
         return `
             <div class="meeting-card ${isPast ? 'past-meeting' : ''}">
                 <div class="meeting-header">
                     <h3 class="meeting-title">
-                        <a href="/groups/${groupId}/meetings/${meeting.id}">${escapeHtml(meeting.title)}</a>
+                        <a href="/groups/${groupId}/meetings/${meeting.id}">${escapeHtml(meeting.title || '제목 없음')}</a>
                     </h3>
-                    <div class="meeting-location">📍 ${escapeHtml(meeting.location)}</div>
+                    <div class="meeting-location">📍 ${escapeHtml(meeting.location_name || '장소 미정')}</div>
                     <div class="meeting-time">
-                        📅 ${meetingDate.toLocaleDateString('ko-KR', { 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric', 
-                            weekday: 'long' 
-                        })} ${meetingDate.toLocaleTimeString('ko-KR', { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                        })}
+                        📅 ${formattedDate}
+                    </div>
+                    <div class="meeting-time">
+                        ⏰ ${startTime} - ${endTime}
                     </div>
                 </div>
                 <div class="meeting-meta">
                     <span class="meta-item participants-badge">
                         참석 ${meeting.participant_count || 0}명 / 정원 ${meeting.max_participants || '제한없음'}명
                     </span>
-                    ${meeting.book_title ? `<span class="meta-item">📚 ${escapeHtml(meeting.book_title)}</span>` : ''}
+                    ${meeting.created_by_username ? `<span class="meta-item">주최: ${escapeHtml(meeting.created_by_username)}</span>` : ''}
                 </div>
                 <div class="meeting-actions">
                     <a href="/groups/${groupId}/meetings/${meeting.id}" class="btn btn-primary">상세보기</a>
