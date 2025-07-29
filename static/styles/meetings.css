@@ -1,0 +1,120 @@
+/* Meetings Page Styles */
+
+.group-info {
+    background: rgba(0,0,0,0.02);
+    padding: 20px;
+    margin-bottom: 30px;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.group-info h2 {
+    font-size: 20px;
+    font-weight: 400;
+    margin-bottom: 10px;
+}
+
+.group-info p {
+    color: #666;
+    font-size: 15px;
+    margin: 0;
+}
+
+.action-buttons {
+    margin-bottom: 30px;
+    text-align: right;
+}
+
+.meetings-list {
+    margin-top: 30px;
+}
+
+.meeting-card {
+    padding: 25px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.meeting-card:last-child {
+    border-bottom: none;
+}
+
+.meeting-header {
+    margin-bottom: 15px;
+}
+
+.meeting-title {
+    font-size: 20px;
+    font-weight: 400;
+    margin-bottom: 8px;
+}
+
+.meeting-location {
+    color: #666;
+    margin-bottom: 8px;
+    font-size: 15px;
+}
+
+.meeting-time {
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 12px;
+}
+
+.meeting-meta {
+    font-size: 14px;
+    color: #999;
+    margin-bottom: 15px;
+}
+
+.meeting-meta .meta-item {
+    margin-right: 20px;
+}
+
+.meeting-actions {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.participants-badge {
+    background: transparent;
+    color: #28a745;
+    padding: 0;
+    font-size: 14px;
+    font-weight: 400;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+}
+
+.empty-state h2 {
+    font-size: 20px;
+    margin-bottom: 15px;
+    font-weight: 400;
+}
+
+.empty-state p {
+    margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+    .action-buttons {
+        text-align: center;
+    }
+    
+    .meeting-title {
+        font-size: 18px;
+    }
+    
+    .meeting-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .meeting-actions .btn {
+        width: 100%;
+        text-align: center;
+    }
+}

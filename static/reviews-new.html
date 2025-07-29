@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>독후감 쓰기 - 읽고 난 뒤</title>
+    <link rel="stylesheet" href="/styles/base.css">
+    <link rel="stylesheet" href="/styles/components.css">
+    <link rel="stylesheet" href="/styles/reviews.css">
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <div class="nav-spacer"></div>
+            <a href="/" class="nav-logo-center">읽고 난 뒤</a>
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+            <div class="nav-links" id="navLinks">
+                <a href="/reviews/new" class="active">독후감 쓰기</a>
+                <a href="/books">책 마당</a>
+                <a href="/groups">함께 읽기</a>
+                <a href="/profile">내 정보</a>
+                <a href="/logout">나가기</a>
+            </div>
+        </div>
+    </nav>
+    
+    <div id="flashMessage" class="flash-message" style="display: none;"></div>
+    
+    <div class="container">
+        <h1>독후감 쓰기</h1>
+        
+        <div class="info-box">
+            모임을 선택하지 않으면 개인 독후감으로 저장됩니다. 같은 책에 대해 각 모임마다 하나의 독후감만 작성할 수 있습니다.
+        </div>
+        
+        <form id="reviewForm">
+            <div class="form-group">
+                <label for="book_id">책 선택</label>
+                <select id="book_id" name="book_id" required>
+                    <option value="">책을 선택하세요</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="group_id">모임 선택 (선택사항)</label>
+                <select id="group_id" name="group_id">
+                    <option value="">개인 독후감</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="rating">평점</label>
+                <select id="rating" name="rating" required>
+                    <option value="5">5</option>
+                    <option value="4">4</option>
+                    <option value="3">3</option>
+                    <option value="2">2</option>
+                    <option value="1">1</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="review">감상</label>
+                <textarea id="review" name="review" rows="10" required placeholder="책을 읽고 느낀 점을 자유롭게 작성해주세요"></textarea>
+            </div>
+            
+            <div style="text-align: right;">
+                <button type="button" class="btn btn-secondary" onclick="location.href='/'">취소</button>
+                <button type="submit" class="btn btn-primary">등록</button>
+            </div>
+        </form>
+    </div>
+    
+    <script src="/scripts/base.js"></script>
+    <script src="/scripts/reviews-new.js"></script>
+</body>
+</html>

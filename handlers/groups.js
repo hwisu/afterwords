@@ -1,18 +1,62 @@
-import { renderGroupsPage, renderGroupManagePage } from '../views/groups.js';
 import { getUserByUsername, getUserFromToken } from './auth.js';
+import { isUserGroupMember, isUserGroupAdmin, getUserFromRequest, verifyGroupAccess } from '../middleware/auth.js';
 
-// Handle getting all groups
-async function getAllGroups(env) {
-  const stmt = env.DB.prepare('SELECT * FROM groups ORDER BY name');
-  const result = await stmt.all();
-  return result.results;
+// Handle getting all groups with membership status
+async function getAllGroups(env, userId = null) {
+  // Get all non-deleted groups with member count
+  const groups = await env.DB.prepare(`
+    SELECT g.*, 
+           COUNT(DISTINCT gm.user_id) as member_count,
+           COUNT(DISTINCT rg.review_id) as review_count
+    FROM groups g
+    LEFT JOIN group_members gm ON g.id = gm.group_id
+    LEFT JOIN review_groups rg ON g.id = rg.group_id
+    WHERE g.deleted_at IS NULL
+    GROUP BY g.id
+    ORDER BY g.name
+  `).all();
+  
+  if (!userId) {
+    return groups.results;
+  }
+  
+  // Add membership status for the user
+  const userMemberships = await env.DB.prepare(`
+    SELECT gm.group_id,
+           CASE WHEN ga.user_id IS NOT NULL THEN 1 ELSE 0 END as is_admin
+    FROM group_members gm
+    LEFT JOIN group_admins ga ON gm.group_id = ga.group_id AND ga.user_id = gm.user_id
+    WHERE gm.user_id = ?
+  `).bind(userId).all();
+  
+  const membershipMap = {};
+  userMemberships.results.forEach(m => {
+    membershipMap[m.group_id] = { 
+      is_member: true, 
+      is_admin: m.is_admin === 1 
+    };
+  });
+  
+  return groups.results.map(group => ({
+    ...group,
+    is_member: membershipMap[group.id]?.is_member || false,
+    is_admin: membershipMap[group.id]?.is_admin || false
+  }));
 }
 
-// Handle getting a specific group
-async function getGroup(env, id) {
-  const groupResult = await env.DB.prepare('SELECT * FROM groups WHERE id = ?').bind(id).first();
+// Handle getting a specific group (with access control)
+async function getGroup(env, id, userId = null) {
+  const groupResult = await env.DB.prepare('SELECT * FROM groups WHERE id = ? AND deleted_at IS NULL').bind(id).first();
   if (!groupResult) {
     return null;
+  }
+
+  // If userId is provided, verify access
+  if (userId) {
+    const hasAccess = await isUserGroupMember(env, userId, id);
+    if (!hasAccess) {
+      return null; // Don't reveal group exists
+    }
   }
 
   // Get members with usernames
@@ -87,53 +131,6 @@ async function addBookToGroup(env, groupId, bookId) {
   return getGroup(env, groupId);
 }
 
-// Handle groups page
-async function handleGroupsPage(request, env) {
-  // Get the authenticated user
-  const cookieHeader = request.headers.get('Cookie');
-  const cookies = Object.fromEntries(
-    cookieHeader ? cookieHeader.split('; ').map(c => c.split('=')) : []
-  );
-  const token = cookies.auth_token;
-  
-  if (!token) {
-    return Response.redirect(new URL('/login', request.url), 303);
-  }
-  
-  // Get user from token
-  const user = await getUserFromToken(token, env);
-  if (!user) {
-    return Response.redirect(new URL('/login', request.url), 303);
-  }
-  
-  // Get all groups with member count
-  const allGroups = await env.DB.prepare(`
-    SELECT g.*, COUNT(gm.user_id) as member_count
-    FROM groups g
-    LEFT JOIN group_members gm ON g.id = gm.group_id
-    GROUP BY g.id
-    ORDER BY g.name
-  `).all();
-  
-  // Get user's groups with admin check
-  const userGroups = await env.DB.prepare(`
-    SELECT g.*, 
-           COUNT(gm2.user_id) as member_count,
-           CASE WHEN ga.user_id IS NOT NULL THEN 1 ELSE 0 END as is_admin
-    FROM group_members gm
-    JOIN groups g ON gm.group_id = g.id
-    LEFT JOIN group_members gm2 ON g.id = gm2.group_id
-    LEFT JOIN group_admins ga ON g.id = ga.group_id AND ga.user_id = ?
-    WHERE gm.user_id = ?
-    GROUP BY g.id
-    ORDER BY g.name
-  `).bind(user.id, user.id).all();
-  
-  const html = await renderGroupsPage(allGroups.results, userGroups.results, user.id);
-  return new Response(html, {
-    headers: { 'Content-Type': 'text/html;charset=UTF-8' },
-  });
-}
 
 // Handle creating a new group
 async function handleCreateGroup(request, env) {
@@ -205,7 +202,12 @@ async function handleJoinGroup(groupId, request, env) {
     'INSERT INTO group_members (group_id, user_id, joined_at) VALUES (?, ?, datetime("now"))'
   ).bind(groupId, user.id).run();
   
-  return new Response('Joined successfully', { status: 200 });
+  return new Response(JSON.stringify({ 
+    success: true 
+  }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' }
+  });
 }
 
 // Handle leaving a group
@@ -250,71 +252,35 @@ async function handleLeaveGroup(groupId, request, env) {
     // Last member, delete the group
     await env.DB.prepare('DELETE FROM group_members WHERE group_id = ?').bind(groupId).run();
     await env.DB.prepare('DELETE FROM group_books WHERE group_id = ?').bind(groupId).run();
-    await env.DB.prepare('DELETE FROM reviews WHERE group_id = ?').bind(groupId).run();
+    // Soft delete the group
+    const deletedAt = new Date().toISOString();
+    await env.DB.prepare('UPDATE groups SET deleted_at = ? WHERE id = ?').bind(deletedAt, groupId).run();
     await env.DB.prepare('DELETE FROM group_invitations WHERE group_id = ?').bind(groupId).run();
     try {
       await env.DB.prepare('DELETE FROM group_admins WHERE group_id = ?').bind(groupId).run();
     } catch (e) {}
     await env.DB.prepare('DELETE FROM groups WHERE id = ?').bind(groupId).run();
-    return new Response('Group deleted', { status: 200 });
+    return new Response(JSON.stringify({ 
+      success: true,
+      message: '모임이 삭제되었습니다.'
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
   } else {
     // Remove from group
     await env.DB.prepare(
       'DELETE FROM group_members WHERE group_id = ? AND user_id = ?'
     ).bind(groupId, user.id).run();
-    return new Response('Left successfully', { status: 200 });
+    return new Response(JSON.stringify({ 
+      success: true 
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 
-// Handle group management page
-async function handleGroupManagePage(groupId, request, env) {
-  // Get the authenticated user
-  const cookieHeader = request.headers.get('Cookie');
-  const cookies = Object.fromEntries(
-    cookieHeader ? cookieHeader.split('; ').map(c => c.split('=')) : []
-  );
-  const token = cookies.auth_token;
-  
-  const user = await getUserFromToken(token, env);
-  if (!user) {
-    return Response.redirect(new URL('/login', request.url), 303);
-  }
-  
-  // Check if user is admin
-  try {
-    const isAdmin = await env.DB.prepare(
-      'SELECT 1 FROM group_admins WHERE group_id = ? AND user_id = ?'
-    ).bind(groupId, user.id).first();
-    
-    if (!isAdmin) {
-      return new Response('권한이 없습니다.', { status: 403 });
-    }
-  } catch (e) {
-    return new Response('권한이 없습니다.', { status: 403 });
-  }
-  
-  // Get group details
-  const group = await env.DB.prepare('SELECT * FROM groups WHERE id = ?').bind(groupId).first();
-  if (!group) {
-    return new Response('Group not found', { status: 404 });
-  }
-  
-  // Get members
-  const members = await env.DB.prepare(`
-    SELECT u.*, gm.joined_at,
-           CASE WHEN ga.user_id IS NOT NULL THEN 1 ELSE 0 END as is_admin
-    FROM group_members gm
-    JOIN users u ON gm.user_id = u.id
-    LEFT JOIN group_admins ga ON gm.group_id = ga.group_id AND gm.user_id = ga.user_id
-    WHERE gm.group_id = ?
-    ORDER BY gm.joined_at
-  `).bind(groupId).all();
-  
-  const html = await renderGroupManagePage(group, members.results, user.id);
-  return new Response(html, {
-    headers: { 'Content-Type': 'text/html;charset=UTF-8' },
-  });
-}
 
 // Handle removing a member from group (admin only)
 async function handleRemoveMember(groupId, userId, request, env) {
@@ -437,20 +403,24 @@ async function handleDeleteGroup(groupId, request, env) {
   ).bind(groupId).first();
   
   if (memberCount.count > 1) {
-    return new Response('멤버가 남아있어 그룹을 삭제할 수 없습니다.', { status: 400 });
+    return new Response('멤버가 남아있어 모임을 삭제할 수 없습니다.', { status: 400 });
   }
   
-  // Delete everything related to group
+  // Soft delete the group
+  const deletedAt = new Date().toISOString();
+  await env.DB.prepare('UPDATE groups SET deleted_at = ? WHERE id = ?').bind(deletedAt, groupId).run();
+  
+  // Clean up relations
   await env.DB.prepare('DELETE FROM group_members WHERE group_id = ?').bind(groupId).run();
   await env.DB.prepare('DELETE FROM group_books WHERE group_id = ?').bind(groupId).run();
-  await env.DB.prepare('DELETE FROM reviews WHERE group_id = ?').bind(groupId).run();
   await env.DB.prepare('DELETE FROM group_invitations WHERE group_id = ?').bind(groupId).run();
   try {
     await env.DB.prepare('DELETE FROM group_admins WHERE group_id = ?').bind(groupId).run();
   } catch (e) {}
-  await env.DB.prepare('DELETE FROM groups WHERE id = ?').bind(groupId).run();
+  
+  // Note: review_groups relation is preserved - reviews remain accessible to users
   
   return new Response('Group deleted', { status: 200 });
 }
 
-export { getAllGroups, getGroup, createGroup, addMemberToGroup, addBookToGroup, handleGroupsPage, handleCreateGroup, handleJoinGroup, handleLeaveGroup, handleGroupManagePage, handleRemoveMember, handleMakeAdmin, handleDeleteGroup };
+export { getAllGroups, getGroup, createGroup, addMemberToGroup, addBookToGroup, handleCreateGroup, handleJoinGroup, handleLeaveGroup, handleRemoveMember, handleMakeAdmin, handleDeleteGroup };

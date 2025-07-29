@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>책 마당 - 읽고 난 뒤</title>
+    <link rel="stylesheet" href="/styles/base.css">
+    <link rel="stylesheet" href="/styles/components.css">
+    <link rel="stylesheet" href="/styles/books.css">
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <div class="nav-spacer"></div>
+            <a href="/" class="nav-logo-center">읽고 난 뒤</a>
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+            <div class="nav-links" id="navLinks">
+                <a href="/reviews/new">독후감 쓰기</a>
+                <a href="/books" class="active">책 마당</a>
+                <a href="/groups">함께 읽기</a>
+                <a href="/profile">내 정보</a>
+                <a href="/logout">나가기</a>
+            </div>
+        </div>
+    </nav>
+    
+    <div id="flashMessage" class="flash-message" style="display: none;"></div>
+    
+    <div class="container">
+        <h1>책 마당</h1>
+        
+        <div class="action-buttons">
+            <a href="/books/new" class="btn btn-primary">새 책 등록</a>
+        </div>
+        
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="책 제목이나 저자로 검색...">
+        </div>
+        
+        <div id="booksList" class="books-grid">
+            <!-- Books will be loaded here -->
+        </div>
+    </div>
+    
+    <script src="/scripts/base.js"></script>
+    <script src="/scripts/books.js"></script>
+</body>
+</html>

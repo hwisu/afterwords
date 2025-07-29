@@ -38,6 +38,7 @@ coverage/
 
 # Wrangler
 .wrangler/
+.dev.vars
 
 database.db
 .claude

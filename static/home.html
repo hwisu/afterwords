@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>읽고 난 뒤</title>
+    <link rel="stylesheet" href="/styles/base.css">
+    <link rel="stylesheet" href="/styles/components.css">
+    <link rel="stylesheet" href="/styles/home.css">
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <div class="nav-spacer"></div>
+            <a href="/" class="nav-logo-center">읽고 난 뒤</a>
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+            <div class="nav-links" id="navLinks">
+                <a href="/reviews/new">독후감 쓰기</a>
+                <a href="/books">책 마당</a>
+                <a href="/groups">함께 읽기</a>
+                <a href="/profile">내 정보</a>
+                <a href="/logout">나가기</a>
+            </div>
+        </div>
+    </nav>
+    
+    <div id="flashMessage" class="flash-message" style="display: none;"></div>
+    
+    <div class="container">
+        <div class="page-content">
+            <h2 style="margin-top: 20px;">최근 독후감</h2>
+            
+            <div class="filters">
+                <label for="group-filter">모임 필터:</label>
+                <select id="group-filter" name="group-filter">
+                    <option value="">모든 모임</option>
+                </select>
+            </div>
+            
+            <ul class="review-list" id="reviewList">
+                <!-- Reviews will be loaded here -->
+            </ul>
+        </div>
+    </div>
+    
+    <script src="/scripts/base.js"></script>
+    <script src="/scripts/home.js"></script>
+</body>
+</html>

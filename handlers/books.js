@@ -1,5 +1,3 @@
-import { renderBookRegistrationPage, renderBooksListPage, renderBookEditPage } from '../views/books.js';
-import { renderReviewWritingPage } from '../views/reviews.js';
 import { getUserFromToken } from '../handlers/auth.js';
 
 // Handle getting all books
@@ -22,13 +20,6 @@ async function getReviewsByBook(bookId, env) {
   return result.results;
 }
 
-// Handle showing book registration page
-async function handleBookRegistrationPage() {
-  const html = await renderBookRegistrationPage();
-  return new Response(html, {
-    headers: { 'Content-Type': 'text/html;charset=UTF-8' },
-  });
-}
 
 // Handle adding a new book
 async function handleAddBook(request, env) {
@@ -66,63 +57,15 @@ async function handleAddBook(request, env) {
     'INSERT INTO books (id, title, author, isbn, page_count, created_at) VALUES (?, ?, ?, ?, ?, datetime("now"))'
   ).bind(id, title, author, isbn, page_count).run();
   
-  return Response.redirect(new URL('/', request.url), 303);
-}
-
-// Handle showing review writing page
-async function handleReviewWritingPage(request, env) {
-  // Get the authenticated user
-  const cookieHeader = request.headers.get('Cookie');
-  const cookies = Object.fromEntries(
-    cookieHeader ? cookieHeader.split('; ').map(c => c.split('=')) : []
-  );
-  const token = cookies.auth_token;
-  
-  // Get user from token
-  const user = await getUserFromToken(token, env);
-  if (!user) {
-    return new Response('Unauthorized', { status: 401 });
-  }
-  
-  // Get all books
-  const books = await env.DB.prepare('SELECT * FROM books ORDER BY title').all();
-  
-  // Get user's groups
-  const userGroups = await env.DB.prepare(`
-    SELECT g.*
-    FROM group_members gm
-    JOIN groups g ON gm.group_id = g.id
-    WHERE gm.user_id = ?
-    ORDER BY g.name
-  `).bind(user.id).all();
-  
-  const html = await renderReviewWritingPage(books.results, userGroups.results);
-  return new Response(html, {
-    headers: { 'Content-Type': 'text/html;charset=UTF-8' },
+  return new Response(JSON.stringify({ 
+    success: true, 
+    redirect: '/books' 
+  }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' }
   });
 }
 
-// Handle showing books list page
-async function handleBooksListPage(env) {
-  const books = await env.DB.prepare('SELECT * FROM books ORDER BY created_at DESC').all();
-  const html = await renderBooksListPage(books.results);
-  return new Response(html, {
-    headers: { 'Content-Type': 'text/html;charset=UTF-8' },
-  });
-}
-
-// Handle showing book edit page
-async function handleBookEditPage(bookId, env) {
-  const book = await env.DB.prepare('SELECT * FROM books WHERE id = ?').bind(bookId).first();
-  if (!book) {
-    return new Response('Book not found', { status: 404 });
-  }
-  
-  const html = await renderBookEditPage(book);
-  return new Response(html, {
-    headers: { 'Content-Type': 'text/html;charset=UTF-8' },
-  });
-}
 
 // Handle updating book
 async function handleUpdateBook(bookId, request, env) {
@@ -159,7 +102,12 @@ async function handleDeleteBook(bookId, env) {
   // Delete book
   await env.DB.prepare('DELETE FROM books WHERE id = ?').bind(bookId).run();
   
-  return new Response('Book deleted', { status: 200 });
+  return new Response(JSON.stringify({ 
+    success: true 
+  }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' }
+  });
 }
 
-export { getAllBooks, getReviewsByBook, handleBookRegistrationPage, handleAddBook, handleReviewWritingPage, handleBooksListPage, handleBookEditPage, handleUpdateBook, handleDeleteBook };
+export { getAllBooks, getReviewsByBook, handleAddBook, handleUpdateBook, handleDeleteBook };

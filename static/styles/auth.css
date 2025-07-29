@@ -1,0 +1,55 @@
+/* Authentication Pages Styles */
+.auth-page {
+    max-width: 400px;
+    margin: 0 auto;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.auth-page.loaded {
+    opacity: 1;
+}
+
+.login-container,
+.signup-container {
+    margin-bottom: 30px;
+}
+
+.auth-page h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.auth-page button {
+    width: 100%;
+}
+
+.auth-page button:hover {
+    background: #f0f0f0;
+}
+
+.invite-info {
+    background: transparent;
+    padding: 15px 0;
+    margin-bottom: 30px;
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+}
+
+.invite-info strong {
+    color: #333;
+    font-weight: 400;
+}
+
+.password-hint {
+    font-size: 12px;
+    color: #999;
+    margin-top: 5px;
+}
+
+/* Error message specific to auth pages */
+.auth-page .error {
+    text-align: center;
+    margin-bottom: 20px;
+}

@@ -1,0 +1,141 @@
+/* Groups Management Page Styles */
+
+.group-info {
+    background: rgba(0,0,0,0.02);
+    padding: 25px;
+    margin-bottom: 40px;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.group-info h2 {
+    font-size: 24px;
+    font-weight: 400;
+    margin-bottom: 10px;
+}
+
+.group-info p {
+    color: #666;
+    font-size: 15px;
+    margin: 5px 0;
+}
+
+.invite-section {
+    margin-top: 20px;
+}
+
+.invite-link-container {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.invite-link-container input {
+    flex: 1;
+    padding: 10px;
+    font-size: 14px;
+    background: rgba(0,0,0,0.02);
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.members-list {
+    margin-top: 20px;
+}
+
+.member-item {
+    padding: 15px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.member-item:last-child {
+    border-bottom: none;
+}
+
+.member-info {
+    flex: 1;
+}
+
+.member-name {
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.member-meta {
+    font-size: 14px;
+    color: #666;
+}
+
+.member-badges {
+    margin-left: 10px;
+}
+
+.admin-badge {
+    background: transparent;
+    color: #007bff;
+    padding: 0 8px;
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.member-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.danger-zone {
+    margin-top: 60px;
+    padding-top: 30px;
+    border-top: 1px solid rgba(220, 53, 69, 0.2);
+}
+
+.danger-zone h2 {
+    color: #dc3545;
+}
+
+.warning-text {
+    color: #dc3545;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.btn-danger {
+    background: transparent;
+    color: #dc3545;
+    border: 1px solid #dc3545;
+    padding: 10px 20px;
+}
+
+.btn-danger:hover {
+    background: #dc3545;
+    color: white;
+}
+
+@media (max-width: 768px) {
+    .invite-link-container {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .invite-link-container input,
+    .invite-link-container button {
+        width: 100%;
+    }
+    
+    .member-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .member-actions {
+        width: 100%;
+    }
+    
+    .member-actions button {
+        flex: 1;
+    }
+}

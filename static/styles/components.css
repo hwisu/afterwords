@@ -1,0 +1,226 @@
+/* Component Styles - 재사용 가능한 UI 컴포넌트 */
+
+/* Forms */
+.form-group {
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 400;
+    font-size: 14px;
+    color: #666;
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 10px 0;
+    border: none;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    font-size: 15px;
+    font-family: inherit;
+    background: transparent;
+    font-weight: 300;
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-bottom: 1px solid rgba(0,0,0,0.3);
+}
+
+textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+/* Buttons */
+button, .btn {
+    background: transparent;
+    color: #333;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: opacity 0.3s ease;
+    font-weight: 400;
+    text-decoration: underline;
+    font-family: inherit;
+}
+
+button:hover, .btn:hover {
+    opacity: 0.6;
+}
+
+.btn-primary {
+    color: #333;
+}
+
+.btn-secondary {
+    color: #007bff;
+}
+
+.btn-danger {
+    color: #dc3545;
+}
+
+/* Cards & Lists */
+.card {
+    padding: 20px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.card:last-child {
+    border-bottom: none;
+}
+
+.card-title {
+    font-size: 18px;
+    font-weight: 400;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.card-subtitle {
+    color: #666;
+    margin-bottom: 8px;
+    font-size: 15px;
+}
+
+.card-meta {
+    font-size: 14px;
+    color: #999;
+    margin-bottom: 12px;
+    line-height: 1.6;
+}
+
+.card-actions {
+    display: flex;
+    gap: 20px;
+}
+
+/* Lists */
+.list-unstyled {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* Sections */
+.section {
+    background: transparent;
+    padding: 0;
+    margin-bottom: 50px;
+}
+
+.section:last-child {
+    margin-bottom: 0;
+}
+
+/* Info Boxes */
+.info-box {
+    background: transparent;
+    padding: 15px 0;
+    margin-bottom: 30px;
+    font-size: 14px;
+    color: #666;
+    font-weight: 300;
+}
+
+.info-box strong {
+    color: #333;
+    font-weight: 400;
+}
+
+/* Badges */
+.badge {
+    background: transparent;
+    color: #666;
+    padding: 0 0 0 10px;
+    font-size: 12px;
+}
+
+/* Search */
+.search-box {
+    margin-bottom: 40px;
+}
+
+.search-box input {
+    max-width: 500px;
+}
+
+/* Grid Layout */
+.grid {
+    display: grid;
+    gap: 30px;
+}
+
+.grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+/* Tables */
+.table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+table {
+    min-width: 100%;
+    border-collapse: collapse;
+}
+
+/* Loading States */
+.loading {
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.loading.loaded {
+    opacity: 1;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    input, select, textarea {
+        font-size: 16px; /* Prevent iOS zoom */
+    }
+    
+    button, .btn {
+        font-size: 16px;
+        padding: 12px 24px;
+    }
+    
+    .grid-2, .grid-3 {
+        grid-template-columns: 1fr;
+    }
+    
+    .card-actions {
+        flex-wrap: wrap;
+    }
+}
+
+.back-btn, .back-link {
+    display: inline-block;
+    padding: 0;
+    background: transparent;
+    color: #333;
+    text-decoration: underline;
+    margin-bottom: 30px;
+    font-size: 15px;
+    transition: opacity 0.3s ease;
+}
+
+.back-btn:hover, .back-link:hover {
+    opacity: 0.6;
+}
+
+@media (max-width: 480px) {
+    .form-group {
+        margin-bottom: 15px;
+    }
+}

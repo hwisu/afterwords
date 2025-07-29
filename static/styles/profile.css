@@ -1,0 +1,39 @@
+/* Profile Page Styles */
+
+.section {
+    margin-bottom: 50px;
+}
+
+.section h2 {
+    margin-bottom: 20px;
+    font-size: 20px;
+    font-weight: 400;
+}
+
+.card-content {
+    padding: 20px 0;
+}
+
+.card-content p {
+    margin: 10px 0;
+    font-size: 16px;
+}
+
+.card-content strong {
+    font-weight: 400;
+    color: #666;
+}
+
+.review-list,
+.group-list {
+    margin-top: 20px;
+}
+
+.empty-message {
+    color: #666;
+    font-style: italic;
+    text-align: center;
+    padding: 40px 0;
+}
+
+/* Card styles are in components.css */

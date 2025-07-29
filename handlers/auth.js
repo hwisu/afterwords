@@ -37,8 +37,8 @@ async function getUserFromToken(token, env) {
   return tokenResult;
 }
 
-import { renderLoginPage, renderSignupPage } from '../views/auth.js';
 import bcrypt from 'bcryptjs';
+import { sendWelcomeEmail } from '../utils/email-resend.js';
 
 async function hashPassword(password) {
   const saltRounds = 12;
@@ -48,13 +48,6 @@ async function hashPassword(password) {
 // Generate auth token
 function generateAuthToken() {
   return crypto.randomUUID();
-}
-
-// Handle login page
-async function handleLogin(env) {
-  return new Response(await renderLoginPage(), {
-    headers: { 'Content-Type': 'text/html;charset=UTF-8' },
-  });
 }
 
 // Handle login form submission
@@ -79,20 +72,21 @@ async function handleLoginPost(request, env) {
       await env.DB.prepare('INSERT INTO auth_tokens (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)')
         .bind(token, user.id, now, expires).run();
       
-      // Create response with redirect and set cookie header
-      return new Response('', {
-        status: 302,
+      // Create response with JSON and set cookie header
+      return new Response(JSON.stringify({ success: true, redirect: '/' }), {
+        status: 200,
         headers: {
-          'Location': '/',
-          'Set-Cookie': `auth_token=${token}; Path=/; HttpOnly; Max-Age=${30 * 24 * 60 * 60}`
+          'Content-Type': 'application/json',
+          'Set-Cookie': `auth_token=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${30 * 24 * 60 * 60}`
         }
       });
     }
   }
   
   // Failed login
-  return new Response(await renderLoginPage('아이디 또는 비밀번호가 올바르지 않습니다.'), {
-    headers: { 'Content-Type': 'text/html;charset=UTF-8' },
+  return new Response(JSON.stringify({ error: '아이디 또는 비밀번호가 올바르지 않습니다.' }), {
+    status: 401,
+    headers: { 'Content-Type': 'application/json' },
   });
 }
 
@@ -102,60 +96,17 @@ async function handleLogout() {
     status: 302,
     headers: {
       'Location': '/login',
-      'Set-Cookie': 'auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Strict'
+      'Set-Cookie': 'auth_token=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0'
     }
   });
 }
 
-// Handle signup page
-async function handleSignup(request, env) {
-  const url = new URL(request.url);
-  const inviteCode = url.searchParams.get('invite');
-  const inviteType = url.searchParams.get('type');
-  
-  if (!inviteCode) {
-    return new Response('초대 코드가 필요합니다.', { status: 400 });
-  }
-  
-  // Verify invitation is valid
-  let invitation;
-  if (inviteType === 'group') {
-    invitation = await env.DB.prepare(`
-      SELECT i.*, g.name as group_name
-      FROM group_invitations i
-      JOIN groups g ON i.group_id = g.id
-      WHERE i.invite_code = ?
-    `).bind(inviteCode).first();
-  } else {
-    invitation = await env.DB.prepare(
-      'SELECT * FROM general_invitations WHERE invite_code = ?'
-    ).bind(inviteCode).first();
-  }
-  
-  if (!invitation) {
-    return new Response('유효하지 않은 초대 코드입니다.', { status: 404 });
-  }
-  
-  // Check if expired
-  if (new Date(invitation.expires_at) < new Date()) {
-    return new Response('만료된 초대 코드입니다.', { status: 410 });
-  }
-  
-  // Check if max uses reached
-  if (invitation.uses_count >= invitation.max_uses) {
-    return new Response('사용 횟수가 초과된 초대 코드입니다.', { status: 410 });
-  }
-  
-  const html = await renderSignupPage(inviteCode, inviteType, invitation);
-  return new Response(html, {
-    headers: { 'Content-Type': 'text/html;charset=UTF-8' },
-  });
-}
 
 // Handle signup form submission
 async function handleSignupPost(request, env) {
   const formData = await request.formData();
   const username = formData.get('username');
+  const email = formData.get('email');
   const password = formData.get('password');
   const passwordConfirm = formData.get('password_confirm');
   const inviteCode = formData.get('invite_code');
@@ -163,35 +114,40 @@ async function handleSignupPost(request, env) {
   
   // Validate passwords match
   if (password !== passwordConfirm) {
-    const html = await renderSignupPage(inviteCode, inviteType, null, '비밀번호가 일치하지 않습니다.');
-    return new Response(html, {
-      headers: { 'Content-Type': 'text/html;charset=UTF-8' },
+    return new Response(JSON.stringify({ error: '비밀번호가 일치하지 않습니다.' }), {
+      headers: { 'Content-Type': 'application/json' },
       status: 400
     });
   }
   
   // Validate password requirements
   if (password.length < 6) {
-    const html = await renderSignupPage(inviteCode, inviteType, null, '비밀번호는 최소 6자 이상이어야 합니다.');
-    return new Response(html, {
-      headers: { 'Content-Type': 'text/html;charset=UTF-8' },
+    return new Response(JSON.stringify({ error: '비밀번호는 최소 6자 이상이어야 합니다.' }), {
+      headers: { 'Content-Type': 'application/json' },
       status: 400
     });
   }
   
   if (password.length > 50) {
-    const html = await renderSignupPage(inviteCode, inviteType, null, '비밀번호는 50자를 초과할 수 없습니다.');
-    return new Response(html, {
-      headers: { 'Content-Type': 'text/html;charset=UTF-8' },
+    return new Response(JSON.stringify({ error: '비밀번호는 50자를 초과할 수 없습니다.' }), {
+      headers: { 'Content-Type': 'application/json' },
       status: 400
     });
   }
   
   // Check for at least one number and one letter
   if (!/[0-9]/.test(password) || !/[a-zA-Z]/.test(password)) {
-    const html = await renderSignupPage(inviteCode, inviteType, null, '비밀번호는 숫자와 문자를 모두 포함해야 합니다.');
-    return new Response(html, {
-      headers: { 'Content-Type': 'text/html;charset=UTF-8' },
+    return new Response(JSON.stringify({ error: '비밀번호는 숫자와 문자를 모두 포함해야 합니다.' }), {
+      headers: { 'Content-Type': 'application/json' },
+      status: 400
+    });
+  }
+  
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return new Response(JSON.stringify({ error: '유효한 이메일 주소를 입력해주세요.' }), {
+      headers: { 'Content-Type': 'application/json' },
       status: 400
     });
   }
@@ -199,9 +155,17 @@ async function handleSignupPost(request, env) {
   // Check if username already exists
   const existingUser = await getUserByUsername(env, username);
   if (existingUser) {
-    const html = await renderSignupPage(inviteCode, inviteType, null, '이미 사용 중인 아이디입니다.');
-    return new Response(html, {
-      headers: { 'Content-Type': 'text/html;charset=UTF-8' },
+    return new Response(JSON.stringify({ error: '이미 사용 중인 아이디입니다.' }), {
+      headers: { 'Content-Type': 'application/json' },
+      status: 400
+    });
+  }
+  
+  // Check if email already exists
+  const existingEmail = await env.DB.prepare('SELECT id FROM users WHERE LOWER(email) = LOWER(?)').bind(email).first();
+  if (existingEmail) {
+    return new Response(JSON.stringify({ error: '이미 사용 중인 이메일입니다.' }), {
+      headers: { 'Content-Type': 'application/json' },
       status: 400
     });
   }
@@ -210,8 +174,8 @@ async function handleSignupPost(request, env) {
   const userId = crypto.randomUUID();
   const hashedPassword = await hashPassword(password);
   await env.DB.prepare(
-    'INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, datetime("now"))'
-  ).bind(userId, username, hashedPassword).run();
+    'INSERT INTO users (id, username, email, password_hash, created_at) VALUES (?, ?, ?, ?, datetime("now"))'
+  ).bind(userId, username, email, hashedPassword).run();
   
   // Update invitation usage
   if (inviteType === 'group') {
@@ -241,14 +205,19 @@ async function handleSignupPost(request, env) {
     'INSERT INTO auth_tokens (token, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)'
   ).bind(token, userId, new Date().toISOString(), new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()).run();
   
+  // Send welcome email (don't wait for it)
+  sendWelcomeEmail(email, username, env).catch(err => {
+    console.error('Failed to send welcome email:', err);
+  });
+  
   // Set cookie and redirect
   return new Response('', {
     status: 303,
     headers: {
       'Location': '/',
-      'Set-Cookie': `auth_token=${token}; Path=/; HttpOnly; Max-Age=${30 * 24 * 60 * 60}`
+      'Set-Cookie': `auth_token=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${30 * 24 * 60 * 60}`
     }
   });
 }
 
-export { checkAuth, handleLogin, handleLoginPost, handleLogout, getUserByUsername, handleSignup, handleSignupPost, getUserFromToken };
+export { checkAuth, handleLoginPost, handleLogout, getUserByUsername, handleSignupPost, getUserFromToken };

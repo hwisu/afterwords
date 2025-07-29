@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>새 책 등록 - 읽고 난 뒤</title>
+    <link rel="stylesheet" href="/styles/base.css">
+    <link rel="stylesheet" href="/styles/components.css">
+    <link rel="stylesheet" href="/styles/books.css">
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <div class="nav-spacer"></div>
+            <a href="/" class="nav-logo-center">읽고 난 뒤</a>
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+            <div class="nav-links" id="navLinks">
+                <a href="/reviews/new">독후감 쓰기</a>
+                <a href="/books" class="active">책 마당</a>
+                <a href="/groups">함께 읽기</a>
+                <a href="/profile">내 정보</a>
+                <a href="/logout">나가기</a>
+            </div>
+        </div>
+    </nav>
+    
+    <div id="flashMessage" class="flash-message" style="display: none;"></div>
+    
+    <div class="container">
+        <a href="/books" class="back-link">← 책 목록으로</a>
+        
+        <h1>새 책 등록</h1>
+        
+        <form id="bookForm">
+            <div class="form-group">
+                <label for="title">제목</label>
+                <input type="text" id="title" name="title" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="author">저자</label>
+                <input type="text" id="author" name="author" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="isbn">ISBN (선택사항)</label>
+                <input type="text" id="isbn" name="isbn">
+            </div>
+            
+            <div class="form-group">
+                <label for="page_count">페이지 수 (선택사항)</label>
+                <input type="number" id="page_count" name="page_count" min="1">
+            </div>
+            
+            <div style="text-align: right;">
+                <button type="button" class="btn btn-secondary" onclick="location.href='/books'">취소</button>
+                <button type="submit" class="btn btn-primary">등록</button>
+            </div>
+        </form>
+    </div>
+    
+    <script src="/scripts/base.js"></script>
+    <script src="/scripts/books-new.js"></script>
+</body>
+</html>

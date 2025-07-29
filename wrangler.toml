@@ -13,5 +13,10 @@ database_id = "15f10e00-3a8f-4fdd-a474-3f3a2e56d8ef"
 database_name = "book-reviews-db"
 migrations_dir = "./migrations"
 
+# Assets binding
+[assets]
+directory = "./static"
+binding = "ASSETS"
+
 [observability.logs]
 enabled = true

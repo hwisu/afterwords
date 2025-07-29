@@ -148,7 +148,7 @@ async function acceptGroupInvitation(inviteCode, request, env) {
   ).bind(invitation.group_id, user.id).first();
   
   if (existingMember) {
-    return new Response('이미 그룹의 멤버입니다.', { status: 409 });
+    return new Response('이미 모임의 멤버입니다.', { status: 409 });
   }
   
   // Add user to group
@@ -238,10 +238,10 @@ async function handleInvitationPage(inviteCode, env) {
     `).bind(inviteCode).first();
   }
   
-  const html = await renderInvitationPage(inviteCode, invitation);
-  return new Response(html, {
-    headers: { 'Content-Type': 'text/html;charset=UTF-8' },
-  });
+  // Return static invitation page - let client handle the invitation logic
+  return env.ASSETS.fetch(new Request(new URL('/invitation.html', 'https://example.com'), {
+    headers: { 'X-Invite-Code': inviteCode }
+  }));
 }
 
 export { createGroupInvitation, acceptGroupInvitation, handleInvitationPage, createGeneralInvitation };

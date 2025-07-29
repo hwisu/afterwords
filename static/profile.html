@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>내 정보 - 읽고 난 뒤</title>
+    <link rel="stylesheet" href="/styles/base.css">
+    <link rel="stylesheet" href="/styles/components.css">
+    <link rel="stylesheet" href="/styles/profile.css">
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <div class="nav-spacer"></div>
+            <a href="/" class="nav-logo-center">읽고 난 뒤</a>
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+            <div class="nav-links" id="navLinks">
+                <a href="/reviews/new">독후감 쓰기</a>
+                <a href="/books">책 마당</a>
+                <a href="/groups">함께 읽기</a>
+                <a href="/profile" class="active">내 정보</a>
+                <a href="/logout">나가기</a>
+            </div>
+        </div>
+    </nav>
+    
+    <div id="flashMessage" class="flash-message" style="display: none;"></div>
+    
+    <div class="container">
+        <h1>내 정보</h1>
+        
+        <div class="section">
+            <h2>계정 정보</h2>
+            <div class="card">
+                <div class="card-content">
+                    <p><strong>아이디:</strong> <span id="username">로딩 중...</span></p>
+                    <p><strong>가입일:</strong> <span id="createdAt">로딩 중...</span></p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>내가 쓴 독후감</h2>
+            <div id="userReviews" class="review-list">
+                <!-- User reviews will be loaded here -->
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>참여 중인 모임</h2>
+            <div id="userGroups" class="group-list">
+                <!-- User groups will be loaded here -->
+            </div>
+        </div>
+    </div>
+    
+    <script src="/scripts/base.js"></script>
+    <script src="/scripts/profile.js"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>모임 만남 - 읽고 난 뒤</title>
+    <link rel="stylesheet" href="/styles/base.css">
+    <link rel="stylesheet" href="/styles/components.css">
+    <link rel="stylesheet" href="/styles/meetings.css">
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <div class="nav-spacer"></div>
+            <a href="/" class="nav-logo-center">읽고 난 뒤</a>
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+            <div class="nav-links" id="navLinks">
+                <a href="/reviews/new">독후감 쓰기</a>
+                <a href="/books">책 마당</a>
+                <a href="/groups">함께 읽기</a>
+                <a href="/profile">내 정보</a>
+                <a href="/logout">나가기</a>
+            </div>
+        </div>
+    </nav>
+    
+    <div id="flashMessage" class="flash-message" style="display: none;"></div>
+    
+    <div class="container">
+        <a href="/groups" class="back-link">← 모임으로 돌아가기</a>
+        
+        <h1>모임 만남</h1>
+        
+        <div class="group-info" id="groupInfo">
+            <!-- Group info will be loaded here -->
+        </div>
+        
+        <div class="action-buttons">
+            <a href="#" id="newMeetingBtn" class="btn btn-primary">만남 만들기</a>
+        </div>
+        
+        <div class="meetings-list" id="meetingsList">
+            <!-- Meetings will be loaded here -->
+        </div>
+    </div>
+    
+    <script src="/scripts/base.js"></script>
+    <script src="/scripts/meetings.js"></script>
+</body>
+</html>

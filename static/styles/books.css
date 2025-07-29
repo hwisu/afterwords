@@ -1,0 +1,73 @@
+/* Books Page Styles */
+
+.action-buttons {
+    margin-bottom: 30px;
+    text-align: right;
+}
+
+.books-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 30px;
+    margin-top: 30px;
+}
+
+.book-card {
+    padding: 20px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.book-title {
+    font-size: 18px;
+    font-weight: 400;
+    margin-bottom: 8px;
+}
+
+.book-author {
+    color: #666;
+    margin-bottom: 12px;
+    font-size: 15px;
+}
+
+.book-meta {
+    font-size: 14px;
+    color: #999;
+    margin-bottom: 12px;
+    line-height: 1.6;
+}
+
+.book-meta .meta-item {
+    margin-right: 15px;
+}
+
+.book-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+}
+
+.empty-state h2 {
+    font-size: 20px;
+    margin-bottom: 15px;
+    font-weight: 400;
+}
+
+.empty-state p {
+    margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+    .books-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .action-buttons {
+        text-align: center;
+    }
+}

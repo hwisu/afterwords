@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>함께 읽기 - 읽고 난 뒤</title>
+    <link rel="stylesheet" href="/styles/base.css">
+    <link rel="stylesheet" href="/styles/components.css">
+    <link rel="stylesheet" href="/styles/groups.css">
+</head>
+<body>
+    <nav class="nav-bar">
+        <div class="nav-container">
+            <div class="nav-spacer"></div>
+            <a href="/" class="nav-logo-center">읽고 난 뒤</a>
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+            <div class="nav-links" id="navLinks">
+                <a href="/reviews/new">독후감 쓰기</a>
+                <a href="/books">책 마당</a>
+                <a href="/groups" class="active">함께 읽기</a>
+                <a href="/profile">내 정보</a>
+                <a href="/logout">나가기</a>
+            </div>
+        </div>
+    </nav>
+    
+    <div id="flashMessage" class="flash-message" style="display: none;"></div>
+    
+    <div class="container">
+        <h1>함께 읽기</h1>
+        
+        <div class="action-buttons">
+            <button onclick="showCreateGroupForm()" class="btn btn-primary">새 모임 만들기</button>
+        </div>
+        
+        <!-- Create Group Form (hidden by default) -->
+        <div id="createGroupForm" class="create-form" style="display: none;">
+            <h2>새 모임 만들기</h2>
+            <form id="newGroupForm">
+                <div class="form-group">
+                    <label for="groupName">모임 이름</label>
+                    <input type="text" id="groupName" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="groupDescription">모임 설명</label>
+                    <textarea id="groupDescription" name="description" rows="3"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" onclick="hideCreateGroupForm()" class="btn btn-secondary">취소</button>
+                    <button type="submit" class="btn btn-primary">만들기</button>
+                </div>
+            </form>
+        </div>
+        
+        <div id="groupsList" class="groups-list">
+            <!-- Groups will be loaded here -->
+        </div>
+    </div>
+    
+    <script src="/scripts/base.js"></script>
+    <script src="/scripts/groups.js"></script>
+</body>
+</html>
