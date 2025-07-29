@@ -11,7 +11,7 @@
     "reset-db": "wrangler d1 delete book-reviews-db --force && npm run setup-db"
   },
   "devDependencies": {
-    "wrangler": "^3.0.0"
+    "wrangler": "^4.26.1"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
